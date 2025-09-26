@@ -1,44 +1,88 @@
-# API Symbols Documentation
+# API Symbols Documentation - Complete Reference
 
-## Tổng quan
-API Symbols cung cấp các endpoint để quản lý và truy xuất thông tin chứng khoán trong hệ thống IQX Trading.
+## 🚀 Tổng quan
+API Symbols cung cấp một bộ endpoint hoàn chỉnh để quản lý và truy xuất thông tin chứng khoán trong hệ thống IQX Trading. API hỗ trợ tìm kiếm, phân trang, lọc, và lấy giá real-time từ VietCap.
 
-## Base URL
+## 🔗 Base URL
 ```
 http://localhost:3000/api/symbols
 ```
 
-## Authentication
+## 🔐 Authentication
 Một số endpoint yêu cầu JWT token trong header:
 ```
 Authorization: Bearer <your_jwt_token>
 ```
 
+## 📊 Database Schema
+### Symbol Entity
+```typescript
+interface Symbol {
+  id: number;              // Khóa chính (bigint)
+  symbol: string;          // Mã chứng khoán (unique)
+  type: string;            // Loại: STOCK, BOND, FU
+  board: string;           // Sàn: HSX, HNX, UPCOM
+  en_organ_name?: string;  // Tên tiếng Anh
+  organ_short_name?: string; // Tên viết tắt
+  organ_name?: string;     // Tên tiếng Việt
+  product_grp_id?: string; // Mã nhóm sản phẩm
+  created_at: Date;        // Ngày tạo
+  updated_at: Date;        // Ngày cập nhật
+}
+```
+
 ---
 
-## 📋 Endpoints
+## 📋 API Endpoints
 
 ### 1. Lấy danh sách chứng khoán (có phân trang)
 
 **GET** `/api/symbols`
 
-Lấy danh sách chứng khoán với phân trang và bộ lọc.
+Lấy danh sách chứng khoán với phân trang và bộ lọc. Endpoint chính để tìm kiếm và lọc chứng khoán.
 
 #### Query Parameters:
-| Tham số | Kiểu | Mặc định | Mô tả |
-|---------|------|----------|-------|
-| `page` | number | 1 | Trang hiện tại |
-| `limit` | number | 20 | Số lượng mỗi trang |
-| `search` | string | - | Tìm kiếm theo mã hoặc tên |
-| `type` | string | - | Loại chứng khoán (STOCK, BOND, etc.) |
-| `board` | string | - | Sàn giao dịch (HSX, HNX, UPC) |
+| Tham số | Kiểu | Mặc định | Bắt buộc | Mô tả | Ví dụ |
+|---------|------|----------|----------|-------|-------|
+| `page` | number | 1 | ❌ | Trang hiện tại (≥1) | `1` |
+| `limit` | number | 20 | ❌ | Số lượng mỗi trang (1-100) | `20` |
+| `search` | string | - | ❌ | Tìm kiếm trong tất cả trường tên | `vinamilk` |
+| `symbol` | string | - | ❌ | Tìm kiếm theo mã chứng khoán | `VNM` |
+| `type` | enum | - | ❌ | Loại: `STOCK`, `BOND`, `FU` | `STOCK` |
+| `board` | enum | - | ❌ | Sàn: `HSX`, `HNX`, `UPCOM` | `HSX` |
+| `includePrices` | boolean | false | ❌ | Lấy giá real-time (chậm) | `true` |
 
-#### Example Request:
+#### 🎯 Search Logic:
+- **`search`**: Tìm trong `organ_name`, `organ_short_name`, `en_organ_name`, `symbol`
+- **`symbol`**: Tìm kiếm chỉ trong trường `symbol`
+- **Độ ưu tiên kết quả**:
+  1. Khớp chính xác với symbol
+  2. Symbol bắt đầu bằng từ khóa
+  3. Symbol chứa từ khóa
+  4. Các trường khác chứa từ khóa
+
+#### Request Examples:
 ```bash
-curl -X GET "http://localhost:3000/api/symbols?page=1&limit=10&search=VN&type=STOCK&board=HSX"
+# Cơ bản - lấy trang đầu
+curl "http://localhost:3000/api/symbols"
+
+# Phân trang
+curl "http://localhost:3000/api/symbols?page=2&limit=10"
+
+# Tìm kiếm theo tên công ty
+curl "http://localhost:3000/api/symbols?search=vinamilk&limit=5"
+
+# Lọc theo loại và sàn
+curl "http://localhost:3000/api/symbols?type=STOCK&board=HSX&limit=50"
+
+# Bao gồm giá real-time (chậm)
+curl "http://localhost:3000/api/symbols?search=VN&includePrices=true&limit=5"
+
+# Tìm kiếm mã chứng khoán cụ thể
+curl "http://localhost:3000/api/symbols?symbol=VIC&includePrices=true"
 ```
 
-#### Example Response:
+#### Success Response (200):
 ```json
 {
   "data": [
@@ -47,10 +91,12 @@ curl -X GET "http://localhost:3000/api/symbols?page=1&limit=10&search=VN&type=ST
       "symbol": "VNM",
       "type": "STOCK",
       "board": "HSX",
-      "enOrganName": "Vietnam Dairy Products Joint Stock Company",
-      "organShortName": "VINAMILK",
-      "organName": "Công ty Cổ phần Sữa Việt Nam",
-      "productGrpID": "STO"
+      "en_organ_name": "Vietnam Dairy Products Joint Stock Company",
+      "organ_short_name": "VINAMILK",
+      "organ_name": "Công ty Cổ phần Sữa Việt Nam",
+      "product_grp_id": "STO",
+      "currentPrice": 61600,           // Chỉ khi includePrices=true
+      "priceUpdatedAt": "2025-09-25T07:40:00.000Z" // Chỉ khi includePrices=true
     }
   ],
   "meta": {
@@ -65,27 +111,53 @@ curl -X GET "http://localhost:3000/api/symbols?page=1&limit=10&search=VN&type=ST
 }
 ```
 
+#### Error Response (400):
+```json
+{
+  "statusCode": 400,
+  "message": [
+    "Trang phải lớn hơn 0",
+    "Limit không được vượt quá 100"
+  ],
+  "error": "Bad Request"
+}
+```
+
 ---
 
 ### 2. Lấy tất cả chứng khoán (không phân trang)
 
 **GET** `/api/symbols/all`
 
-⚠️ **Cẩn thận**: Endpoint này có thể trả về lượng dữ liệu lớn.
+⚠️ **Cảnh báo**: Endpoint này có thể trả về lượng dữ liệu lớn (>1500 records). Chỉ sử dụng khi cần thiết.
 
 #### Query Parameters:
-| Tham số | Kiểu | Mô tả |
-|---------|------|-------|
-| `search` | string | Tìm kiếm theo mã hoặc tên |
-| `type` | string | Loại chứng khoán |
-| `board` | string | Sàn giao dịch |
+| Tham số | Kiểu | Mặc định | Bắt buộc | Mô tả | Ví dụ |
+|---------|------|----------|----------|-------|-------|
+| `search` | string | - | ❌ | Tìm kiếm theo mã hoặc tên | `vingroup` |
+| `symbol` | string | - | ❌ | Tìm kiếm theo mã chứng khoán | `VIC` |
+| `type` | enum | - | ❌ | Loại: `STOCK`, `BOND`, `FU` | `STOCK` |
+| `board` | enum | - | ❌ | Sàn: `HSX`, `HNX`, `UPCOM` | `HSX` |
+| `includePrices` | boolean | false | ❌ | Lấy giá real-time (chỉ 50 đầu tiên) | `true` |
 
-#### Example Request:
+#### 🎯 Performance Notes:
+- Giới hạn `includePrices` chỉ cho **50 symbols đầu tiên** để tránh timeout
+- Response không có phân trang - trả về tất cả kết quả phù hợp
+- Sử dụng cùng logic tìm kiếm và sắp xếp với endpoint có phân trang
+
+#### Request Examples:
 ```bash
-curl -X GET "http://localhost:3000/api/symbols/all?type=STOCK"
+# Lấy tất cả chứng khoán STOCK
+curl "http://localhost:3000/api/symbols/all?type=STOCK"
+
+# Lấy tất cả mã HSX
+curl "http://localhost:3000/api/symbols/all?board=HSX"
+
+# Tìm kiếm tất cả mã chứa "bank"
+curl "http://localhost:3000/api/symbols/all?search=bank"
 ```
 
-#### Example Response:
+#### Success Response (200):
 ```json
 {
   "data": [
@@ -94,11 +166,12 @@ curl -X GET "http://localhost:3000/api/symbols/all?type=STOCK"
       "symbol": "VNM",
       "type": "STOCK",
       "board": "HSX",
-      "enOrganName": "Vietnam Dairy Products Joint Stock Company",
-      "organShortName": "VINAMILK",
-      "organName": "Công ty Cổ phần Sữa Việt Nam",
-      "productGrpID": "STO"
-    }
+      "en_organ_name": "Vietnam Dairy Products Joint Stock Company",
+      "organ_short_name": "VINAMILK",
+      "organ_name": "Công ty Cổ phần Sữa Việt Nam",
+      "product_grp_id": "STO"
+    },
+    // ... 1500+ records
   ],
   "count": 1500,
   "message": "Lấy tất cả chứng khoán thành công"
@@ -107,15 +180,20 @@ curl -X GET "http://localhost:3000/api/symbols/all?type=STOCK"
 
 ---
 
-### 3. Tìm kiếm chứng khoán
+### 3. Tìm kiếm chứng khoán (Alias)
 
 **GET** `/api/symbols/search`
 
-Tương tự như endpoint `/api/symbols` nhưng được tối ưu cho tìm kiếm.
+📝 **Lưu ý**: Endpoint này là alias của `/api/symbols` với cùng chức năng và parameters. Được tạo để semantics rõ ràng hơn khi tìm kiếm.
 
-#### Example Request:
+#### Functionality:
+- Hoàn toàn giống với endpoint `GET /api/symbols`
+- Hỗ trợ đầy đủ phân trang, lọc, và tìm kiếm
+- Tham khảo tài liệu của endpoint `GET /api/symbols` ở trên
+
+#### Quick Example:
 ```bash
-curl -X GET "http://localhost:3000/api/symbols/search?search=vinamilk&limit=5"
+curl "http://localhost:3000/api/symbols/search?search=vinamilk&limit=5"
 ```
 
 ---
@@ -124,49 +202,64 @@ curl -X GET "http://localhost:3000/api/symbols/search?search=vinamilk&limit=5"
 
 **GET** `/api/symbols/count`
 
-Lấy tổng số lượng chứng khoán trong hệ thống.
+Endpoint đơn giản để lấy tổng số chứng khoán trong hệ thống.
 
-#### Example Request:
+#### Query Parameters: Không có
+
+#### Request Examples:
 ```bash
-curl -X GET "http://localhost:3000/api/symbols/count"
+curl "http://localhost:3000/api/symbols/count"
 ```
 
-#### Example Response:
+#### Success Response (200):
 ```json
 {
-  "count": 1500,
+  "count": 1547,
   "message": "Lấy số lượng chứng khoán thành công"
 }
 ```
 
 ---
 
-### 5. Lấy thông tin chứng khoán theo mã
+### 5. Lấy thông tin chi tiết chứng khoán
 
 **GET** `/api/symbols/{symbol}`
 
-Lấy thông tin chi tiết của một chứng khoán theo mã.
+Lấy thông tin chi tiết của một chứng khoán cụ thể theo mã symbol.
 
 #### Path Parameters:
-| Tham số | Kiểu | Mô tả |
-|---------|------|-------|
-| `symbol` | string | Mã chứng khoán (VD: VNM, VIC, FPT) |
+| Tham số | Kiểu | Bắt buộc | Mô tả | Ví dụ |
+|---------|------|----------|-------|-------|
+| `symbol` | string | ✅ | Mã chứng khoán (không phân biệt hoa thường) | `VNM`, `vic` |
 
 #### Query Parameters:
-| Tham số | Kiểu | Mặc định | Mô tả |
-|---------|------|----------|-------|
-| `includePrices` | boolean/string | false | Bao gồm giá hiện tại |
+| Tham số | Kiểu | Mặc định | Bắt buộc | Mô tả | Ví dụ |
+|---------|------|----------|----------|-------|-------|
+| `includePrices` | boolean/string | false | ❌ | Bao gồm giá real-time từ VietCap | `true`, `"1"`, `1` |
 
-#### Example Request:
+#### 🎯 includePrices Values:
+Endpoint chấp nhận các giá trị sau cho `includePrices`:
+- `true` (boolean)
+- `"true"` (string)
+- `"1"` (string)
+- `1` (number)
+
+#### Request Examples:
 ```bash
 # Không bao gồm giá
-curl -X GET "http://localhost:3000/api/symbols/VNM"
+curl "http://localhost:3000/api/symbols/VNM"
 
-# Bao gồm giá hiện tại
-curl -X GET "http://localhost:3000/api/symbols/VNM?includePrices=true"
+# Bao gồm giá hiện tại (boolean)
+curl "http://localhost:3000/api/symbols/VNM?includePrices=true"
+
+# Bao gồm giá hiện tại (string)
+curl "http://localhost:3000/api/symbols/VIC?includePrices=1"
+
+# Case insensitive
+curl "http://localhost:3000/api/symbols/vnm?includePrices=true"
 ```
 
-#### Example Response (với giá):
+#### Success Response (200) - Không có giá:
 ```json
 {
   "data": {
@@ -174,10 +267,27 @@ curl -X GET "http://localhost:3000/api/symbols/VNM?includePrices=true"
     "symbol": "VNM",
     "type": "STOCK",
     "board": "HSX",
-    "enOrganName": "Vietnam Dairy Products Joint Stock Company",
-    "organShortName": "VINAMILK",
-    "organName": "Công ty Cổ phần Sữa Việt Nam",
-    "productGrpID": "STO",
+    "en_organ_name": "Vietnam Dairy Products Joint Stock Company",
+    "organ_short_name": "VINAMILK",
+    "organ_name": "Công ty Cổ phần Sữa Việt Nam",
+    "product_grp_id": "STO"
+  },
+  "message": "Lấy thông tin chứng khoán thành công"
+}
+```
+
+#### Success Response (200) - Có giá:
+```json
+{
+  "data": {
+    "id": 8424928,
+    "symbol": "VNM",
+    "type": "STOCK",
+    "board": "HSX",
+    "en_organ_name": "Vietnam Dairy Products Joint Stock Company",
+    "organ_short_name": "VINAMILK",
+    "organ_name": "Công ty Cổ phần Sữa Việt Nam",
+    "product_grp_id": "STO",
     "currentPrice": 61600,
     "priceUpdatedAt": "2025-09-25T07:40:00.000Z"
   },
@@ -185,7 +295,7 @@ curl -X GET "http://localhost:3000/api/symbols/VNM?includePrices=true"
 }
 ```
 
-#### Error Response (404):
+#### Not Found Response (404):
 ```json
 {
   "data": null,

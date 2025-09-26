@@ -41,11 +41,12 @@ export class SymbolsService {
     } = queryDto;
 
     const where: any = {};
+    let symbolLike = false;
 
     // Lọc theo symbol
     if (symbol) {
       where.symbol = `%${symbol}%`;
-      where.symbolLike = true;
+      symbolLike = true;
     }
 
     // Lọc theo type
@@ -62,14 +63,11 @@ export class SymbolsService {
 
     // Apply basic filters
     Object.keys(where).forEach((key) => {
-      if (where[key]) {
+      if (where[key] && key !== 'symbolLike') {
         queryBuilder.andWhere(
-          `symbol.${key} ${key === 'symbol' && where.symbolLike ? 'LIKE' : '='} :${key}`,
+          `symbol.${key} ${key === 'symbol' && symbolLike ? 'LIKE' : '='} :${key}`,
           {
-            [key]:
-              typeof where[key] === 'object'
-                ? `%${where[key].value}%`
-                : where[key],
+            [key]: where[key],
           },
         );
       }
