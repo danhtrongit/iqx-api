@@ -41,7 +41,9 @@ export class MarketDataController {
         success: connected,
         mqttConnected: this.mqttService.isClientConnected(),
         investorId: credentials.investorId,
-        message: connected ? 'MQTT connection successful' : 'MQTT connection failed',
+        message: connected
+          ? 'MQTT connection successful'
+          : 'MQTT connection failed',
       };
     } catch (error) {
       this.logger.error('❌ Test connection failed:', error);

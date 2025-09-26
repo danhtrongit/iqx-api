@@ -97,10 +97,14 @@ export class MarketDataGateway
 
   async handleConnection(client: AuthenticatedSocket, ...args: any[]) {
     try {
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
-        this.logger.warn(`Client ${client.id} attempted to connect without token`);
+        this.logger.warn(
+          `Client ${client.id} attempted to connect without token`,
+        );
         client.disconnect();
         return;
       }
@@ -110,7 +114,7 @@ export class MarketDataGateway
 
       // Find user by ID from JWT payload
       const user = await this.userRepository.findOne({
-        where: { id: payload.sub, isActive: true }
+        where: { id: payload.sub, isActive: true },
       });
 
       if (!user) {
@@ -133,16 +137,18 @@ export class MarketDataGateway
       client.emit('connection_status', {
         status: 'authenticated',
         userId: user.id,
-        mqttConnected: this.mqttService.isClientConnected()
+        mqttConnected: this.mqttService.isClientConnected(),
       });
 
       // Initialize MQTT connection if not already connected
       if (!this.mqttService.isClientConnected()) {
         await this.mqttService.connectWithAuth();
       }
-
     } catch (error) {
-      this.logger.error(`Authentication failed for client ${client.id}:`, error);
+      this.logger.error(
+        `Authentication failed for client ${client.id}:`,
+        error,
+      );
       client.emit('auth_error', { message: 'Authentication failed' });
       client.disconnect();
     }
@@ -183,14 +189,16 @@ export class MarketDataGateway
       client.emit('subscription_confirmed', {
         type: 'tick',
         symbol: data.symbol,
-        topic
+        topic,
       });
-      this.logger.log(`Client ${client.id} subscribed to tick data for ${data.symbol}`);
+      this.logger.log(
+        `Client ${client.id} subscribed to tick data for ${data.symbol}`,
+      );
     } else {
       client.emit('subscription_error', {
         type: 'tick',
         symbol: data.symbol,
-        error: 'Failed to subscribe'
+        error: 'Failed to subscribe',
       });
     }
   }
@@ -214,14 +222,16 @@ export class MarketDataGateway
       client.emit('subscription_confirmed', {
         type: 'stock_info',
         symbol: data.symbol,
-        topic
+        topic,
       });
-      this.logger.log(`Client ${client.id} subscribed to stock info for ${data.symbol}`);
+      this.logger.log(
+        `Client ${client.id} subscribed to stock info for ${data.symbol}`,
+      );
     } else {
       client.emit('subscription_error', {
         type: 'stock_info',
         symbol: data.symbol,
-        error: 'Failed to subscribe'
+        error: 'Failed to subscribe',
       });
     }
   }
@@ -245,14 +255,16 @@ export class MarketDataGateway
       client.emit('subscription_confirmed', {
         type: 'top_price',
         symbol: data.symbol,
-        topic
+        topic,
       });
-      this.logger.log(`Client ${client.id} subscribed to top price for ${data.symbol}`);
+      this.logger.log(
+        `Client ${client.id} subscribed to top price for ${data.symbol}`,
+      );
     } else {
       client.emit('subscription_error', {
         type: 'top_price',
         symbol: data.symbol,
-        error: 'Failed to subscribe'
+        error: 'Failed to subscribe',
       });
     }
   }
@@ -276,14 +288,16 @@ export class MarketDataGateway
       client.emit('subscription_confirmed', {
         type: 'market_index',
         indexCode: data.symbol,
-        topic
+        topic,
       });
-      this.logger.log(`Client ${client.id} subscribed to market index for ${data.symbol}`);
+      this.logger.log(
+        `Client ${client.id} subscribed to market index for ${data.symbol}`,
+      );
     } else {
       client.emit('subscription_error', {
         type: 'market_index',
         indexCode: data.symbol,
-        error: 'Failed to subscribe'
+        error: 'Failed to subscribe',
       });
     }
   }
@@ -300,7 +314,10 @@ export class MarketDataGateway
 
     const resolution = data.resolution || '1D';
     const topic = `plaintext/quotes/krx/mdds/ohlc/v1/${resolution}/symbol/${data.symbol}`;
-    const success = await this.mqttService.subscribeToOHLC(data.symbol, resolution);
+    const success = await this.mqttService.subscribeToOHLC(
+      data.symbol,
+      resolution,
+    );
 
     if (success) {
       const subscriptions = this.clientSubscriptions.get(client.id);
@@ -309,15 +326,17 @@ export class MarketDataGateway
         type: 'ohlc',
         symbol: data.symbol,
         resolution,
-        topic
+        topic,
       });
-      this.logger.log(`Client ${client.id} subscribed to OHLC data for ${data.symbol} (${resolution})`);
+      this.logger.log(
+        `Client ${client.id} subscribed to OHLC data for ${data.symbol} (${resolution})`,
+      );
     } else {
       client.emit('subscription_error', {
         type: 'ohlc',
         symbol: data.symbol,
         resolution,
-        error: 'Failed to subscribe'
+        error: 'Failed to subscribe',
       });
     }
   }
@@ -338,13 +357,13 @@ export class MarketDataGateway
       const subscriptions = this.clientSubscriptions.get(client.id);
       subscriptions?.delete(data.topic);
       client.emit('unsubscription_confirmed', {
-        topic: data.topic
+        topic: data.topic,
       });
       this.logger.log(`Client ${client.id} unsubscribed from ${data.topic}`);
     } else {
       client.emit('unsubscription_error', {
         topic: data.topic,
-        error: 'Failed to unsubscribe'
+        error: 'Failed to unsubscribe',
       });
     }
   }
@@ -354,7 +373,7 @@ export class MarketDataGateway
     const subscriptions = this.clientSubscriptions.get(client.id);
     client.emit('current_subscriptions', {
       subscriptions: Array.from(subscriptions || []),
-      mqttSubscriptions: Array.from(this.mqttService.getSubscriptions().keys())
+      mqttSubscriptions: Array.from(this.mqttService.getSubscriptions().keys()),
     });
   }
 
@@ -362,7 +381,7 @@ export class MarketDataGateway
   handlePing(@ConnectedSocket() client: AuthenticatedSocket) {
     client.emit('pong', {
       timestamp: Date.now(),
-      mqttConnected: this.mqttService.isClientConnected()
+      mqttConnected: this.mqttService.isClientConnected(),
     });
   }
 }

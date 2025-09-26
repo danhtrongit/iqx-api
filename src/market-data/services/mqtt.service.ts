@@ -28,12 +28,16 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
     const credentials = await this.dnseAuthService.getCredentialsFromEnv();
 
     if (!credentials) {
-      this.logger.error('❌ Failed to get DNSE credentials - check your .env file');
+      this.logger.error(
+        '❌ Failed to get DNSE credentials - check your .env file',
+      );
       this.logger.error('Required: DNSE_USERNAME and DNSE_PASSWORD');
       return false;
     }
 
-    this.logger.log(`✅ Got DNSE credentials for investor: ${credentials.investorId}`);
+    this.logger.log(
+      `✅ Got DNSE credentials for investor: ${credentials.investorId}`,
+    );
 
     const config: MqttConnectionConfig = {
       host: 'datafeed-lts-krx.dnse.com.vn',
@@ -44,7 +48,9 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
       path: '/wss',
     };
 
-    this.logger.log(`🔌 Attempting MQTT connection to ${config.host}:${config.port}${config.path}`);
+    this.logger.log(
+      `🔌 Attempting MQTT connection to ${config.host}:${config.port}${config.path}`,
+    );
     const result = await this.connect(config);
 
     if (result) {
@@ -72,18 +78,21 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
       this.logger.log(`🔑 Token: ${config.token.substring(0, 20)}...`);
 
       // Create MQTT client with WebSocket transport
-      this.client = mqtt.connect(`wss://${config.host}:${config.port}${config.path}`, {
-        clientId,
-        username: config.investorId,
-        password: config.token,
-        protocol: 'wss',
-        protocolVersion: 5, // MQTTv5
-        clean: true,
-        keepalive: 1200,
-        rejectUnauthorized: false, // Skip SSL certificate verification
-        reconnectPeriod: 5000,
-        connectTimeout: 30000,
-      });
+      this.client = mqtt.connect(
+        `wss://${config.host}:${config.port}${config.path}`,
+        {
+          clientId,
+          username: config.investorId,
+          password: config.token,
+          protocol: 'wss',
+          protocolVersion: 5, // MQTTv5
+          clean: true,
+          keepalive: 1200,
+          rejectUnauthorized: false, // Skip SSL certificate verification
+          reconnectPeriod: 5000,
+          connectTimeout: 30000,
+        },
+      );
 
       this.logger.log('📡 MQTT client created, setting up event handlers...');
 
@@ -99,13 +108,17 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
         this.client!.once('connect', (connack) => {
           clearTimeout(timeout);
           this.isConnected = true;
-          this.logger.log(`✅ Successfully connected to MQTT broker! Connack: ${JSON.stringify(connack)}`);
+          this.logger.log(
+            `✅ Successfully connected to MQTT broker! Connack: ${JSON.stringify(connack)}`,
+          );
           resolve(true);
         });
 
         this.client!.once('error', (error) => {
           clearTimeout(timeout);
-          this.logger.error(`❌ Failed to connect to MQTT broker: ${error.message}`);
+          this.logger.error(
+            `❌ Failed to connect to MQTT broker: ${error.message}`,
+          );
           this.logger.error(`🔍 Full error:`, error);
           resolve(false);
         });
@@ -132,7 +145,10 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
         this.logger.debug(`📊 Message data: ${JSON.stringify(message)}`);
         this.emit('message', { topic, message });
       } catch (error) {
-        this.logger.error(`❌ Failed to parse message from topic ${topic}:`, error);
+        this.logger.error(
+          `❌ Failed to parse message from topic ${topic}:`,
+          error,
+        );
         this.logger.error(`🔍 Raw payload: ${payload.toString()}`);
       }
     });
@@ -173,7 +189,9 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
           resolve(false);
         } else {
           this.subscriptions.set(topic, qos);
-          this.logger.log(`Successfully subscribed to topic: ${topic} with QoS ${qos}`);
+          this.logger.log(
+            `Successfully subscribed to topic: ${topic} with QoS ${qos}`,
+          );
           resolve(true);
         }
       });
@@ -189,7 +207,10 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
     return new Promise((resolve) => {
       this.client!.unsubscribe(topic, (error) => {
         if (error) {
-          this.logger.error(`Failed to unsubscribe from topic ${topic}:`, error);
+          this.logger.error(
+            `Failed to unsubscribe from topic ${topic}:`,
+            error,
+          );
           resolve(false);
         } else {
           this.subscriptions.delete(topic);
@@ -200,14 +221,19 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
     });
   }
 
-  async publish(topic: string, message: any, qos: 0 | 1 | 2 = 1): Promise<boolean> {
+  async publish(
+    topic: string,
+    message: any,
+    qos: 0 | 1 | 2 = 1,
+  ): Promise<boolean> {
     if (!this.client || !this.isConnected) {
       this.logger.error('MQTT client is not connected');
       return false;
     }
 
     return new Promise((resolve) => {
-      const payload = typeof message === 'string' ? message : JSON.stringify(message);
+      const payload =
+        typeof message === 'string' ? message : JSON.stringify(message);
       this.client!.publish(topic, payload, { qos }, (error) => {
         if (error) {
           this.logger.error(`Failed to publish to topic ${topic}:`, error);
@@ -266,7 +292,10 @@ export class MqttService extends EventEmitter implements OnModuleDestroy {
     return this.subscribe(topic);
   }
 
-  async subscribeToOHLC(symbol: string, resolution: string = '1D'): Promise<boolean> {
+  async subscribeToOHLC(
+    symbol: string,
+    resolution: string = '1D',
+  ): Promise<boolean> {
     const topic = `plaintext/quotes/krx/mdds/ohlc/v1/${resolution}/symbol/${symbol}`;
     return this.subscribe(topic);
   }

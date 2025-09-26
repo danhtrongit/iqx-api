@@ -36,9 +36,7 @@ export class WatchlistController {
   @ApiResponse({ status: 200, description: 'Danh sách cổ phiếu yêu thích' })
   @ApiBearerAuth('JWT-auth')
   async getMyWatchlist(@Request() req) {
-    const watchlist = await this.watchlistService.getUserWatchlist(
-      req.user.id,
-    );
+    const watchlist = await this.watchlistService.getUserWatchlist(req.user.id);
     return {
       data: watchlist,
       count: watchlist.length,
@@ -111,10 +109,7 @@ export class WatchlistController {
       symbolCode,
     );
     const watchlistItem = isInWatchlist
-      ? await this.watchlistService.getWatchlistItem(
-          req.user.id,
-          symbolCode,
-        )
+      ? await this.watchlistService.getWatchlistItem(req.user.id, symbolCode)
       : null;
 
     return {

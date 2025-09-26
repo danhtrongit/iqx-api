@@ -18,11 +18,15 @@ export interface DnseAuthResponse {
 export class DnseAuthService {
   private readonly logger = new Logger(DnseAuthService.name);
   private readonly AUTH_URL = 'https://api.dnse.com.vn/user-service/api/auth';
-  private readonly USER_INFO_URL = 'https://api.dnse.com.vn/user-service/api/me';
+  private readonly USER_INFO_URL =
+    'https://api.dnse.com.vn/user-service/api/me';
 
   constructor(private readonly configService: ConfigService) {}
 
-  async authenticate(username: string, password: string): Promise<DnseAuthResponse | null> {
+  async authenticate(
+    username: string,
+    password: string,
+  ): Promise<DnseAuthResponse | null> {
     try {
       this.logger.log(`🔐 Authenticating with DNSE API for user: ${username}`);
 
@@ -34,12 +38,16 @@ export class DnseAuthService {
 
       if (!authResponse.data?.token) {
         this.logger.error('❌ No token received from DNSE authentication');
-        this.logger.error(`🔍 Response data: ${JSON.stringify(authResponse.data)}`);
+        this.logger.error(
+          `🔍 Response data: ${JSON.stringify(authResponse.data)}`,
+        );
         throw new Error('No token received from authentication');
       }
 
       const token = authResponse.data.token;
-      this.logger.log('✅ Authentication successful, fetching investor info...');
+      this.logger.log(
+        '✅ Authentication successful, fetching investor info...',
+      );
 
       // Step 2: Get investor info
       const userInfoResponse = await axios.get(this.USER_INFO_URL, {
@@ -50,13 +58,17 @@ export class DnseAuthService {
 
       if (!userInfoResponse.data?.investorId) {
         this.logger.error('❌ No investorId received from DNSE user info');
-        this.logger.error(`🔍 Response data: ${JSON.stringify(userInfoResponse.data)}`);
+        this.logger.error(
+          `🔍 Response data: ${JSON.stringify(userInfoResponse.data)}`,
+        );
         throw new Error('No investorId received from user info');
       }
 
       const investorId = userInfoResponse.data.investorId.toString();
 
-      this.logger.log(`🎉 Successfully authenticated! InvestorId: ${investorId}`);
+      this.logger.log(
+        `🎉 Successfully authenticated! InvestorId: ${investorId}`,
+      );
       this.logger.log(`🔑 Token: ${token.substring(0, 30)}...`);
 
       return {
@@ -65,10 +77,16 @@ export class DnseAuthService {
       };
     } catch (error) {
       if (error.response) {
-        this.logger.error(`❌ DNSE API error (${error.response.status}): ${error.response.statusText}`);
-        this.logger.error(`🔍 Response data: ${JSON.stringify(error.response.data)}`);
+        this.logger.error(
+          `❌ DNSE API error (${error.response.status}): ${error.response.statusText}`,
+        );
+        this.logger.error(
+          `🔍 Response data: ${JSON.stringify(error.response.data)}`,
+        );
       } else if (error.request) {
-        this.logger.error('❌ No response from DNSE API - check network connectivity');
+        this.logger.error(
+          '❌ No response from DNSE API - check network connectivity',
+        );
         this.logger.error(`🔍 Request: ${error.request}`);
       } else {
         this.logger.error(`❌ DNSE authentication failed: ${error.message}`);
@@ -84,7 +102,8 @@ export class DnseAuthService {
     const password = this.configService.get<string>('DNSE_PASSWORD');
 
     // Check if we already have stored credentials
-    const existingInvestorId = this.configService.get<string>('DNSE_INVESTOR_ID');
+    const existingInvestorId =
+      this.configService.get<string>('DNSE_INVESTOR_ID');
     const existingToken = this.configService.get<string>('DNSE_TOKEN');
 
     if (existingInvestorId && existingToken) {
@@ -98,8 +117,12 @@ export class DnseAuthService {
     }
 
     if (!username || !password) {
-      this.logger.error('❌ DNSE credentials not found in environment variables');
-      this.logger.error('⚠️ Please set DNSE_USERNAME and DNSE_PASSWORD in your .env file');
+      this.logger.error(
+        '❌ DNSE credentials not found in environment variables',
+      );
+      this.logger.error(
+        '⚠️ Please set DNSE_USERNAME and DNSE_PASSWORD in your .env file',
+      );
       this.logger.error('💡 See DNSE_CREDENTIALS_SETUP.md for instructions');
       return null;
     }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Symbol } from '../entities/symbol.entity';
 import { GetSymbolsDto } from './dto/get-symbols.dto';
@@ -44,7 +44,8 @@ export class SymbolsService {
 
     // Lọc theo symbol
     if (symbol) {
-      where.symbol = ILike(`%${symbol}%`);
+      where.symbol = `%${symbol}%`;
+      where.symbolLike = true;
     }
 
     // Lọc theo type
@@ -63,7 +64,7 @@ export class SymbolsService {
     Object.keys(where).forEach((key) => {
       if (where[key]) {
         queryBuilder.andWhere(
-          `symbol.${key} ${typeof where[key] === 'object' && where[key].value ? 'ILIKE' : '='} :${key}`,
+          `symbol.${key} ${key === 'symbol' && where.symbolLike ? 'LIKE' : '='} :${key}`,
           {
             [key]:
               typeof where[key] === 'object'
@@ -77,7 +78,7 @@ export class SymbolsService {
     // Search với ưu tiên symbol
     if (search) {
       queryBuilder.andWhere(
-        '(symbol.organ_name ILIKE :search OR symbol.organ_short_name ILIKE :search OR symbol.en_organ_name ILIKE :search OR symbol.symbol ILIKE :search)',
+        '(LOWER(symbol.organ_name) LIKE LOWER(:search) OR LOWER(symbol.organ_short_name) LIKE LOWER(:search) OR LOWER(symbol.en_organ_name) LIKE LOWER(:search) OR LOWER(symbol.symbol) LIKE LOWER(:search))',
         {
           search: `%${search}%`,
         },
@@ -93,8 +94,8 @@ export class SymbolsService {
         .orderBy(
           `CASE
             WHEN symbol.symbol = :exactSearch THEN 1
-            WHEN symbol.symbol ILIKE :startSearch THEN 2
-            WHEN symbol.symbol ILIKE :search THEN 3
+            WHEN LOWER(symbol.symbol) LIKE LOWER(:startSearch) THEN 2
+            WHEN LOWER(symbol.symbol) LIKE LOWER(:search) THEN 3
             ELSE 4
           END`,
           'ASC',
@@ -245,7 +246,7 @@ export class SymbolsService {
 
     // Apply filters
     if (symbol) {
-      queryBuilder.andWhere('symbol.symbol ILIKE :symbol', {
+      queryBuilder.andWhere('LOWER(symbol.symbol) LIKE LOWER(:symbol)', {
         symbol: `%${symbol}%`,
       });
     }
@@ -261,7 +262,7 @@ export class SymbolsService {
     // Search trong tên công ty
     if (search) {
       queryBuilder.andWhere(
-        '(symbol.organ_name ILIKE :search OR symbol.organ_short_name ILIKE :search OR symbol.en_organ_name ILIKE :search OR symbol.symbol ILIKE :search)',
+        '(LOWER(symbol.organ_name) LIKE LOWER(:search) OR LOWER(symbol.organ_short_name) LIKE LOWER(:search) OR LOWER(symbol.en_organ_name) LIKE LOWER(:search) OR LOWER(symbol.symbol) LIKE LOWER(:search))',
         {
           search: `%${search}%`,
         },
@@ -274,8 +275,8 @@ export class SymbolsService {
         .orderBy(
           `CASE
             WHEN symbol.symbol = :exactSearch THEN 1
-            WHEN symbol.symbol ILIKE :startSearch THEN 2
-            WHEN symbol.symbol ILIKE :search THEN 3
+            WHEN LOWER(symbol.symbol) LIKE LOWER(:startSearch) THEN 2
+            WHEN LOWER(symbol.symbol) LIKE LOWER(:search) THEN 3
             ELSE 4
           END`,
           'ASC',

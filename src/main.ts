@@ -7,7 +7,10 @@ if (!global.crypto) {
   }
 }
 import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -35,12 +38,12 @@ async function bootstrap() {
       'Access-Control-Allow-Origin',
       'Access-Control-Allow-Headers',
       'Access-Control-Allow-Methods',
-      'Access-Control-Allow-Credentials'
+      'Access-Control-Allow-Credentials',
     ],
     exposedHeaders: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    maxAge: 86400
+    maxAge: 86400,
   });
 
   // Set global prefix for all routes
