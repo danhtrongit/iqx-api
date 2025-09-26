@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnamese Market Data Test - VNINDEX & VIC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            align-items: center;
+        }
+        .controls input, .controls button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .controls button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .controls button:hover {
+            background-color: #45a049;
+        }
+        .controls button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: bold;
+            text-align: center;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .error {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .data-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .data-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .data-card h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .data-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .data-value {
+            color: #333;
+        }
+        .price-positive {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .price-negative {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .quick-actions {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .symbol-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .symbol-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .symbol-btn:hover {
+            background: #1976D2;
+        }
+        @media (max-width: 768px) {
+            .data-display {
+                grid-template-columns: 1fr;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🇻🇳 Vietnamese Market Data Socket Test</h1>
+            <p>Real-time testing for VNINDEX & VIC (Vingroup) - DNSE Market Data API</p>
+        </div>
+
+        <div class="section">
+            <h2>🔌 Connection Setup</h2>
+            <div class="controls">
+                <input type="text" id="serverUrl" value="ws://localhost:3000/market-data" placeholder="Server URL" style="width: 300px;">
+                <input type="text" id="jwtToken" placeholder="JWT Token (required)" style="width: 400px;">
+                <button onclick="connect()" id="connectBtn">Connect</button>
+                <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+            </div>
+            <div id="connectionStatus" class="status disconnected">❌ Disconnected - Enter JWT token to connect</div>
+        </div>
+
+        <div class="section">
+            <h2>🚀 Quick Test Actions</h2>
+            <div class="quick-actions">
+                <h3>Vietnamese Market Symbols</h3>
+                <div class="symbol-buttons">
+                    <button class="symbol-btn" onclick="testVNINDEX()">📈 VNINDEX</button>
+                    <button class="symbol-btn" onclick="testVIC()">🏢 VIC (Vingroup)</button>
+                    <button class="symbol-btn" onclick="testVCB()">🏦 VCB (Vietcombank)</button>
+                    <button class="symbol-btn" onclick="testFPT()">💻 FPT</button>
+                    <button class="symbol-btn" onclick="testMSN()">🐟 MSN (Masan)</button>
+                    <button class="symbol-btn" onclick="testAll()">🔥 Test All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Manual Subscription Controls</h2>
+            <div class="controls">
+                <input type="text" id="symbol" value="VIC" placeholder="Symbol (e.g., VIC, VNINDEX)">
+                <button onclick="subscribeTick()">📈 Subscribe Tick</button>
+                <button onclick="subscribeStockInfo()">📋 Stock Info</button>
+                <button onclick="subscribeTopPrice()">💰 Top Price</button>
+                <button onclick="subscribeOHLC()">📊 OHLC</button>
+            </div>
+            <div class="controls">
+                <input type="text" id="indexCode" value="VNINDEX" placeholder="Index Code (VNINDEX, VN30)">
+                <button onclick="subscribeIndex()">📈 Subscribe Index</button>
+                <button onclick="getSubscriptions()">📋 Get Subscriptions</button>
+                <button onclick="ping()">🏓 Ping</button>
+            </div>
+        </div>
+
+        <div class="data-display">
+            <div class="data-card">
+                <h3>📈 VNINDEX Data</h3>
+                <div id="vnindexData">
+                    <div class="data-row">
+                        <span class="data-label">Status:</span>
+                        <span class="data-value">Waiting for data...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="data-card">
+                <h3>🏢 VIC (Vingroup) Data</h3>
+                <div id="vicData">
+                    <div class="data-row">
+                        <span class="data-label">Status:</span>
+                        <span class="data-value">Waiting for data...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📜 Message Log</h2>
+            <div class="controls">
+                <button onclick="clearLog()">🗑️ Clear Log</button>
+                <button onclick="exportLog()">💾 Export Log</button>
+                <label>
+                    <input type="checkbox" id="autoScroll" checked> Auto-scroll
+                </label>
+                <label>
+                    <input type="checkbox" id="showTimestamp" checked> Show Timestamps
+                </label>
+            </div>
+            <div id="messageLog" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let messageCount = 0;
+        const messageLog = document.getElementById('messageLog');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+
+        // Vietnamese market symbols mapping
+        const VIETNAM_SYMBOLS = {
+            'VIC': 'VIC',      // Vingroup
+            'VCB': 'VCB',      // Vietcombank
+            'FPT': 'FPT',      // FPT Corporation
+            'MSN': 'MSN',      // Masan Group
+            'VHM': 'VHM',      // Vinhomes
+            'GAS': 'GAS',      // PetroVietnam Gas
+            'CTG': 'CTG',      // VietinBank
+            'BID': 'BID',      // BIDV
+            'VRE': 'VRE',      // Vincom Retail
+            'HPG': 'HPG'       // Hoa Phat Group
+        };
+
+        function log(message, type = 'info') {
+            messageCount++;
+            const timestamp = new Date().toLocaleTimeString('vi-VN');
+            const showTimestamp = document.getElementById('showTimestamp').checked;
+
+            const logEntry = document.createElement('div');
+            const timestampStr = showTimestamp ? `[${timestamp}] ` : '';
+            logEntry.innerHTML = `<strong>${timestampStr}#${messageCount}</strong> ${message}`;
+
+            // Color coding based on message type
+            switch(type) {
+                case 'error':
+                    logEntry.style.color = '#ff6b6b';
+                    break;
+                case 'success':
+                    logEntry.style.color = '#51cf66';
+                    break;
+                case 'data':
+                    logEntry.style.color = '#74c0fc';
+                    break;
+                case 'warning':
+                    logEntry.style.color = '#ffd43b';
+                    break;
+                default:
+                    logEntry.style.color = '#ffffff';
+            }
+
+            messageLog.appendChild(logEntry);
+
+            if (document.getElementById('autoScroll').checked) {
+                messageLog.scrollTop = messageLog.scrollHeight;
+            }
+
+            // Limit log entries to prevent memory issues
+            if (messageLog.children.length > 1000) {
+                messageLog.removeChild(messageLog.firstChild);
+            }
+        }
+
+        function updateConnectionStatus(status, message) {
+            connectionStatus.className = `status ${status}`;
+            connectionStatus.textContent = message;
+
+            connectBtn.disabled = status === 'connected';
+            disconnectBtn.disabled = status !== 'connected';
+        }
+
+        function updateDataDisplay(symbol, data) {
+            const targetDiv = symbol.toUpperCase() === 'VNINDEX' ? 'vnindexData' :
+                             symbol.toUpperCase() === 'VIC' ? 'vicData' : null;
+
+            if (!targetDiv) return;
+
+            const container = document.getElementById(targetDiv);
+            container.innerHTML = '';
+
+            Object.entries(data).forEach(([key, value]) => {
+                const row = document.createElement('div');
+                row.className = 'data-row';
+
+                const label = document.createElement('span');
+                label.className = 'data-label';
+                label.textContent = key + ':';
+
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'data-value';
+
+                // Format values
+                if (key.includes('Price') || key.includes('price')) {
+                    valueSpan.textContent = typeof value === 'number' ? value.toLocaleString('vi-VN') : value;
+                    if (key.includes('change') && typeof value === 'number') {
+                        valueSpan.className += value >= 0 ? ' price-positive' : ' price-negative';
+                    }
+                } else {
+                    valueSpan.textContent = value;
+                }
+
+                row.appendChild(label);
+                row.appendChild(valueSpan);
+                container.appendChild(row);
+            });
+        }
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const jwtToken = document.getElementById('jwtToken').value;
+
+            if (!jwtToken) {
+                alert('⚠️ Please enter a JWT token to connect');
+                return;
+            }
+
+            if (socket) {
+                socket.disconnect();
+            }
+
+            log('🔄 Connecting to Vietnamese market data server...', 'info');
+            updateConnectionStatus('connecting', '🔄 Connecting...');
+
+            socket = io(serverUrl, {
+                auth: { token: jwtToken },
+                transports: ['websocket']
+            });
+
+            setupSocketListeners();
+        }
+
+        function setupSocketListeners() {
+            // Connection events
+            socket.on('connect', () => {
+                log('✅ Connected to Vietnamese market data server', 'success');
+                updateConnectionStatus('connected', '✅ Connected & Ready');
+            });
+
+            socket.on('disconnect', () => {
+                log('❌ Disconnected from server', 'error');
+                updateConnectionStatus('disconnected', '❌ Disconnected');
+            });
+
+            socket.on('connection_status', (data) => {
+                log(`🔐 Connection status: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('auth_error', (error) => {
+                log(`🚫 Authentication error: ${error.message}`, 'error');
+                updateConnectionStatus('error', '🚫 Authentication Failed');
+            });
+
+            // MQTT events
+            socket.on('mqtt_status', (data) => {
+                log(`📡 MQTT Status: ${data.status}`, data.status === 'connected' ? 'success' : 'warning');
+            });
+
+            socket.on('mqtt_error', (error) => {
+                log(`❌ MQTT Error: ${error.error}`, 'error');
+            });
+
+            // Subscription events
+            socket.on('subscription_confirmed', (data) => {
+                log(`✅ Subscription confirmed: ${data.type} for ${data.symbol || data.indexCode}`, 'success');
+            });
+
+            socket.on('subscription_error', (error) => {
+                log(`❌ Subscription error: ${JSON.stringify(error)}`, 'error');
+            });
+
+            socket.on('unsubscription_confirmed', (data) => {
+                log(`🗑️ Unsubscribed from: ${data.topic}`, 'info');
+            });
+
+            // Market data - the main event
+            socket.on('market_data', (data) => {
+                const symbol = data.data.symbol || data.data.indexCode || 'Unknown';
+
+                if (data.topic.includes('tick')) {
+                    log(`📈 TICK [${symbol}]: Price=${data.data.matchPrice}, Qty=${data.data.matchQtty}, Side=${data.data.side}`, 'data');
+                    updateDataDisplay(symbol, {
+                        'Match Price': data.data.matchPrice,
+                        'Match Quantity': data.data.matchQtty,
+                        'Side': data.data.side,
+                        'Time': data.data.sendingTime,
+                        'Last Update': new Date().toLocaleTimeString('vi-VN')
+                    });
+                } else if (data.topic.includes('stockinfo')) {
+                    log(`📋 STOCK INFO [${symbol}]: ${JSON.stringify(data.data)}`, 'data');
+                    updateDataDisplay(symbol, {
+                        'Current Price': data.data.currentPrice,
+                        'Open Price': data.data.openPrice,
+                        'High Price': data.data.highPrice,
+                        'Low Price': data.data.lowPrice,
+                        'Volume': data.data.volume,
+                        'Last Update': new Date().toLocaleTimeString('vi-VN')
+                    });
+                } else if (data.topic.includes('index')) {
+                    log(`📊 INDEX [${symbol}]: Value=${data.data.indexValue}, Change=${data.data.changeValue}`, 'data');
+                    updateDataDisplay(symbol, {
+                        'Index Value': data.data.indexValue,
+                        'Change Value': data.data.changeValue,
+                        'Change %': data.data.changePercent + '%',
+                        'Last Update': new Date().toLocaleTimeString('vi-VN')
+                    });
+                } else {
+                    log(`📊 DATA [${symbol}]: ${JSON.stringify(data.data)}`, 'data');
+                    updateDataDisplay(symbol, data.data);
+                }
+            });
+
+            // Utility events
+            socket.on('current_subscriptions', (data) => {
+                log(`📋 Current subscriptions: Client=${data.subscriptions.length}, MQTT=${data.mqttSubscriptions.length}`, 'info');
+                log(`📋 Details: ${JSON.stringify(data, null, 2)}`, 'info');
+            });
+
+            socket.on('pong', (data) => {
+                log(`🏓 Pong received: ${JSON.stringify(data)}`, 'info');
+            });
+
+            // Generic error handler
+            socket.on('error', (error) => {
+                log(`❌ Socket error: ${JSON.stringify(error)}`, 'error');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                log('🔌 Disconnecting from server...', 'info');
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        // Quick test functions for Vietnamese market
+        function testVNINDEX() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            log('🇻🇳 Testing VNINDEX (Vietnamese stock market index)...', 'info');
+            socket.emit('subscribe_market_index', { symbol: 'VNINDEX' });
+        }
+
+        function testVIC() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            log('🏢 Testing VIC (Vingroup) - Vietnam\'s largest conglomerate...', 'info');
+            socket.emit('subscribe_tick', { symbol: 'VIC' });
+            socket.emit('subscribe_stock_info', { symbol: 'VIC' });
+            socket.emit('subscribe_top_price', { symbol: 'VIC' });
+        }
+
+        function testVCB() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            log('🏦 Testing VCB (Vietcombank)...', 'info');
+            socket.emit('subscribe_tick', { symbol: 'VCB' });
+            socket.emit('subscribe_stock_info', { symbol: 'VCB' });
+        }
+
+        function testFPT() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            log('💻 Testing FPT Corporation...', 'info');
+            socket.emit('subscribe_tick', { symbol: 'FPT' });
+            socket.emit('subscribe_stock_info', { symbol: 'FPT' });
+        }
+
+        function testMSN() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            log('🐟 Testing MSN (Masan Group)...', 'info');
+            socket.emit('subscribe_tick', { symbol: 'MSN' });
+            socket.emit('subscribe_stock_info', { symbol: 'MSN' });
+        }
+
+        function testAll() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            log('🔥 Testing all major Vietnamese stocks and index...', 'info');
+
+            // Test VNINDEX
+            socket.emit('subscribe_market_index', { symbol: 'VNINDEX' });
+
+            // Test major Vietnamese stocks
+            Object.keys(VIETNAM_SYMBOLS).forEach(symbol => {
+                setTimeout(() => {
+                    socket.emit('subscribe_tick', { symbol });
+                    socket.emit('subscribe_stock_info', { symbol });
+                }, Math.random() * 2000); // Stagger requests
+            });
+        }
+
+        // Manual subscription functions
+        function subscribeTick() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            const symbol = document.getElementById('symbol').value;
+            socket.emit('subscribe_tick', { symbol });
+            log(`📈 Subscribing to tick data for: ${symbol}`);
+        }
+
+        function subscribeStockInfo() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            const symbol = document.getElementById('symbol').value;
+            socket.emit('subscribe_stock_info', { symbol });
+            log(`📋 Subscribing to stock info for: ${symbol}`);
+        }
+
+        function subscribeTopPrice() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            const symbol = document.getElementById('symbol').value;
+            socket.emit('subscribe_top_price', { symbol });
+            log(`💰 Subscribing to top price for: ${symbol}`);
+        }
+
+        function subscribeOHLC() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            const symbol = document.getElementById('symbol').value;
+            socket.emit('subscribe_ohlc', { symbol, resolution: '1D' });
+            log(`📊 Subscribing to OHLC data for: ${symbol}`);
+        }
+
+        function subscribeIndex() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            const indexCode = document.getElementById('indexCode').value;
+            socket.emit('subscribe_market_index', { symbol: indexCode });
+            log(`📈 Subscribing to market index: ${indexCode}`);
+        }
+
+        function getSubscriptions() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            socket.emit('get_subscriptions');
+            log('📋 Requesting current subscriptions...');
+        }
+
+        function ping() {
+            if (!socket) {
+                alert('Please connect first');
+                return;
+            }
+            socket.emit('ping');
+            log('🏓 Sending ping...');
+        }
+
+        function clearLog() {
+            messageLog.innerHTML = '';
+            messageCount = 0;
+            log('🗑️ Log cleared', 'info');
+        }
+
+        function exportLog() {
+            const logContent = messageLog.innerText;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vietnamese-market-data-log-${new Date().toISOString().slice(0, 19)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            log('💾 Log exported', 'success');
+        }
+
+        // Auto-connect on page load if token is available
+        window.addEventListener('load', () => {
+            log('🇻🇳 Vietnamese Market Data Test Client loaded', 'success');
+            log('Ready to test VNINDEX and VIC data feeds', 'info');
+
+            // Check if there's a token in localStorage
+            const savedToken = localStorage.getItem('jwt_token');
+            if (savedToken) {
+                document.getElementById('jwtToken').value = savedToken;
+            }
+        });
+
+        // Save token to localStorage when entered
+        document.getElementById('jwtToken').addEventListener('input', (e) => {
+            if (e.target.value) {
+                localStorage.setItem('jwt_token', e.target.value);
+            }
+        });
+    </script>
+</body>
+</html>

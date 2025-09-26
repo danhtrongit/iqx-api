@@ -1,0 +1,74 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { SymbolsModule } from './symbols/symbols.module';
+import { VirtualTradingModule } from './virtual-trading/virtual-trading.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SubscriptionModule } from './subscriptions/subscription.module';
+import { WatchlistModule } from './watchlist/watchlist.module';
+import { MarketDataModule } from './market-data/market-data.module';
+import { User } from './entities/user.entity';
+import { UserPii } from './entities/user-pii.entity';
+import { Session } from './entities/session.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { PhoneVerificationCode } from './entities/phone-verification-code.entity';
+import { AuditLog } from './entities/audit-log.entity';
+import { Symbol } from './entities/symbol.entity';
+import { VirtualPortfolio } from './entities/virtual-portfolio.entity';
+import { VirtualHolding } from './entities/virtual-holding.entity';
+import { VirtualTransaction } from './entities/virtual-transaction.entity';
+import { VirtualLeaderboard } from './entities/virtual-leaderboard.entity';
+import { SubscriptionPackage } from './entities/subscription-package.entity';
+import { UserSubscription } from './entities/user-subscription.entity';
+import { Watchlist } from './entities/watchlist.entity';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get('DB_HOST', 'localhost'),
+        port: configService.get('DB_PORT', 3306),
+        username: configService.get('DB_USER', 'root'),
+        password: configService.get('DB_PASSWORD', ''),
+        database: configService.get('DB_NAME', 'auth_db'),
+        entities: [
+          User,
+          UserPii,
+          Session,
+          PasswordResetToken,
+          PhoneVerificationCode,
+          AuditLog,
+          Symbol,
+          VirtualPortfolio,
+          VirtualHolding,
+          VirtualTransaction,
+          VirtualLeaderboard,
+          SubscriptionPackage,
+          UserSubscription,
+          Watchlist,
+        ],
+        synchronize: false,
+        logging: configService.get('NODE_ENV') === 'development',
+      }),
+      inject: [ConfigService],
+    }),
+    ScheduleModule.forRoot(),
+    AuthModule,
+    SymbolsModule,
+    VirtualTradingModule,
+    SubscriptionModule,
+    WatchlistModule,
+    MarketDataModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
