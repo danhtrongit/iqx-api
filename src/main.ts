@@ -1,7 +1,11 @@
-// Fix crypto module issue
-(global as any).crypto = require('crypto');
-
-import 'crypto';
+// Fix crypto module issue - only set if not already defined
+if (!global.crypto) {
+  try {
+    (global as any).crypto = require('crypto');
+  } catch (e) {
+    // Ignore if crypto is already available
+  }
+}
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
