@@ -309,74 +309,203 @@ curl "http://localhost:3000/api/symbols/vnm?includePrices=true"
 
 **POST** `/api/symbols/sync` 🔒
 
-Đồng bộ dữ liệu chứng khoán từ VietCap API (yêu cầu JWT token).
+Đồng bộ dữ liệu chứng khoán từ VietCap API. Endpoint này yêu cầu JWT authentication và chỉ dành cho admin.
 
-#### Headers:
+#### 🛡️ Authentication Required:
 ```
 Authorization: Bearer <your_jwt_token>
 Content-Type: application/json
 ```
 
-#### Example Request:
+#### Query Parameters: Không có
+#### Request Body: Không có
+
+#### 🔄 Sync Process:
+1. Fetch dữ liệu từ VietCap API: `https://trading.vietcap.com.vn/api/price/symbols/getAll`
+2. Lọc bỏ các mã đã bị hủy niêm yết (`board !== 'DELISTED'`)
+3. Batch upsert với chunk size = 100 records
+4. Log progress trong quá trình xử lý
+
+#### ⏰ Auto Sync:
+- Tự động chạy mỗi ngày lúc **6:00 AM** (Cron job)
+- Có thể trigger thủ công qua endpoint này
+
+#### Request Examples:
 ```bash
 curl -X POST "http://localhost:3000/api/symbols/sync" \
-  -H "Authorization: Bearer your_jwt_token_here"
+  -H "Authorization: Bearer your_jwt_token_here" \
+  -H "Content-Type: application/json"
 ```
 
-#### Example Response:
+#### Success Response (200):
 ```json
 {
   "message": "Đồng bộ dữ liệu chứng khoán thành công"
 }
 ```
 
+#### Unauthorized Response (401):
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
+#### Server Error Response (500):
+```json
+{
+  "statusCode": 500,
+  "message": "Lỗi khi đồng bộ dữ liệu",
+  "error": "Internal Server Error"
+}
+```
+
 ---
 
-## 📊 Data Models
+## 📊 Data Models & Schemas
 
 ### SymbolResponseDto
-| Trường | Kiểu | Mô tả |
-|--------|------|-------|
-| `id` | number | ID chứng khoán |
-| `symbol` | string | Mã chứng khoán |
-| `type` | string | Loại (STOCK, BOND, etc.) |
-| `board` | string | Sàn giao dịch (HSX, HNX, UPC) |
-| `enOrganName` | string? | Tên tiếng Anh |
-| `organShortName` | string? | Tên viết tắt |
-| `organName` | string? | Tên tiếng Việt |
-| `productGrpID` | string? | Mã nhóm sản phẩm |
-| `currentPrice` | number? | Giá hiện tại (VND) |
-| `priceUpdatedAt` | string? | Thời gian cập nhật giá |
+| Trường | Kiểu | Bắt buộc | Mô tả | Ví dụ |
+|--------|------|----------|-------|-------|
+| `id` | number | ✅ | ID chứng khoán (unique) | `8424928` |
+| `symbol` | string | ✅ | Mã chứng khoán | `"VNM"` |
+| `type` | string | ✅ | Loại chứng khoán | `"STOCK"`, `"BOND"`, `"FU"` |
+| `board` | string | ✅ | Sàn giao dịch | `"HSX"`, `"HNX"`, `"UPCOM"` |
+| `en_organ_name` | string? | ❌ | Tên công ty tiếng Anh | `"Vietnam Dairy Products JSC"` |
+| `organ_short_name` | string? | ❌ | Tên viết tắt | `"VINAMILK"` |
+| `organ_name` | string? | ❌ | Tên công ty tiếng Việt | `"Công ty CP Sữa Việt Nam"` |
+| `product_grp_id` | string? | ❌ | Mã nhóm sản phẩm | `"STO"` |
+| `currentPrice` | number? | ❌ | Giá hiện tại (VND) | `61600` |
+| `priceUpdatedAt` | string? | ❌ | Timestamp cập nhật giá (ISO 8601) | `"2025-09-25T07:40:00.000Z"` |
+
+### GetSymbolsDto (Request)
+| Trường | Kiểu | Mặc định | Validation | Mô tả |
+|--------|------|----------|------------|-------|
+| `symbol` | string? | - | - | Tìm kiếm theo mã chứng khoán |
+| `type` | enum? | - | `STOCK\|BOND\|FU` | Loại chứng khoán |
+| `board` | enum? | - | `HSX\|HNX\|UPCOM` | Sàn giao dịch |
+| `search` | string? | - | - | Tìm kiếm trong tất cả trường tên |
+| `page` | number? | 1 | ≥1 | Trang hiện tại |
+| `limit` | number? | 20 | 1-100 | Số lượng mỗi trang |
+| `includePrices` | boolean? | false | - | Bao gồm giá real-time |
 
 ### PaginationMetaDto
-| Trường | Kiểu | Mô tả |
-|--------|------|-------|
-| `page` | number | Trang hiện tại |
-| `limit` | number | Số lượng mỗi trang |
-| `total` | number | Tổng số kết quả |
-| `totalPages` | number | Tổng số trang |
-| `hasPreviousPage` | boolean | Có trang trước |
-| `hasNextPage` | boolean | Có trang sau |
+| Trường | Kiểu | Mô tả | Ví dụ |
+|--------|------|-------|-------|
+| `page` | number | Trang hiện tại | `1` |
+| `limit` | number | Số lượng mỗi trang | `20` |
+| `total` | number | Tổng số kết quả | `100` |
+| `totalPages` | number | Tổng số trang | `5` |
+| `hasPreviousPage` | boolean | Có trang trước không | `false` |
+| `hasNextPage` | boolean | Có trang sau không | `true` |
+
+### SymbolsResponseDto (Paginated Response)
+```typescript
+{
+  data: SymbolResponseDto[],      // Mảng chứng khoán
+  meta: PaginationMetaDto,        // Thông tin phân trang
+  message: string                 // Thông báo kết quả
+}
+```
+
+### All Symbols Response (Non-paginated)
+```typescript
+{
+  data: SymbolResponseDto[],      // Tất cả chứng khoán
+  count: number,                  // Tổng số lượng
+  message: string                 // Thông báo kết quả
+}
+```
 
 ---
 
-## 🔍 Filtering & Search
+## 🔍 Search & Filtering Details
 
-### Tìm kiếm
-Parameter `search` sẽ tìm kiếm trong các trường:
-- Mã chứng khoán (`symbol`)
-- Tên tiếng Anh (`enOrganName`)
-- Tên tiếng Việt (`organName`)
-- Tên viết tắt (`organShortName`)
+### 🎯 Search Strategy
+#### `search` Parameter:
+Tìm kiếm **case-insensitive** trong các trường:
+- `symbol` - Mã chứng khoán
+- `organ_name` - Tên công ty tiếng Việt
+- `organ_short_name` - Tên viết tắt
+- `en_organ_name` - Tên công ty tiếng Anh
 
-### Bộ lọc
-- **`type`**: STOCK, BOND, FUND, etc.
-- **`board`**: HSX, HNX, UPC
-- **`productGrpID`**: STO, BND, etc.
+#### `symbol` Parameter:
+Tìm kiếm **LIKE pattern** chỉ trong trường `symbol`:
+- Input: `VN` → tìm tất cả mã chứa "VN" (VNM, VND, VNI, ...)
+
+### 📊 Result Ranking (khi có `search`):
+1. **Khớp chính xác** với symbol: `search = "VNM"` → VNM lên đầu
+2. **Symbol bắt đầu** bằng từ khóa: `search = "VN"` → VNM, VND, VNI...
+3. **Symbol chứa** từ khóa: `search = "bank"` → EXIMBANK, SEABANK...
+4. **Các trường khác** chứa từ khóa: tên công ty, tên viết tắt...
+
+### 🔽 Filtering Options:
+
+#### `type` - Loại chứng khoán:
+| Giá trị | Mô tả | Ví dụ |
+|---------|-------|-------|
+| `STOCK` | Cổ phiếu | VNM, VIC, FPT |
+| `BOND` | Trái phiếu | BOND001, GOV001 |
+| `FU` | Hợp đồng tương lai | VN30F1M |
+
+#### `board` - Sàn giao dịch:
+| Giá trị | Tên đầy đủ | Mô tả |
+|---------|------------|-------|
+| `HSX` | HOSE | Sàn giao dịch Chứng khoán TP.HCM |
+| `HNX` | HNX | Sàn giao dịch Chứng khoán Hà Nội |
+| `UPCOM` | UPCoM | Thị trường giao dịch Chứng khoán chưa niêm yết |
+
+### 🔄 Combining Filters:
+```bash
+# Tìm tất cả STOCK của HSX có chứa "bank"
+/api/symbols?type=STOCK&board=HSX&search=bank
+
+# Tìm mã bắt đầu bằng "VN" trên tất cả sàn
+/api/symbols?symbol=VN&limit=50
+
+# Tìm BOND trên HNX
+/api/symbols?type=BOND&board=HNX
+```
 
 ---
 
-## 📈 Popular Vietnamese Stocks
+## 💰 Real-time Pricing
+
+### 🏢 VietCap Integration
+API tích hợp với **VietCap** để lấy giá real-time:
+- **Endpoint**: `https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart`
+- **Timeframe**: 1 phút (ONE_MINUTE)
+- **Method**: POST với payload JSON
+
+### ⚡ Performance Considerations:
+#### Batch Processing:
+- **Concurrent limit**: 10 symbols/batch
+- **Timeout protection**: Tránh blocking API
+- **Fallback**: Trả về `null` nếu lỗi
+
+#### Rate Limiting:
+- `/all` endpoint: Chỉ lấy giá cho **50 symbols đầu tiên**
+- Paginated endpoints: Không giới hạn (nhưng chậm hơn)
+
+#### Price Data Response:
+```typescript
+{
+  currentPrice: number | null,        // Giá hiện tại (VND)
+  priceUpdatedAt: string | null       // ISO timestamp
+}
+```
+
+### 🚨 Error Handling:
+- Network error → `currentPrice: null`
+- Invalid symbol → `currentPrice: null`
+- API timeout → `currentPrice: null`
+- Luôn trả về `priceUpdatedAt` với timestamp hiện tại
+
+---
+
+## 📈 Popular Vietnamese Stocks (Reference)
 
 | Mã | Tên công ty | Sàn |
 |----|-------------|-----|
