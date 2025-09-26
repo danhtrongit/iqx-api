@@ -18,15 +18,17 @@ async function bootstrap() {
     new FastifyAdapter() as any,
   );
 
-  // Disable CORS - allow all domains
+  // Disable CORS - allow all domains and headers (match production)
   const corsPlugin = await import('@fastify/cors');
   await app.register(corsPlugin.default as any, {
     origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
     allowedHeaders: true,
+    exposedHeaders: true,
     preflightContinue: false,
-    optionsSuccessStatus: 204
+    optionsSuccessStatus: 204,
+    maxAge: 86400
   });
 
   // Set global prefix for all routes
