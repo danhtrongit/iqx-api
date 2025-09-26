@@ -18,28 +18,28 @@ export class SymbolResponseDto {
     description: 'Tên tiếng Anh',
     required: false,
   })
-  enOrganName?: string;
+  en_organ_name?: string;
 
   @ApiProperty({
     example: 'VINAMILK',
     description: 'Tên viết tắt',
     required: false,
   })
-  organShortName?: string;
+  organ_short_name?: string;
 
   @ApiProperty({
     example: 'Công ty Cổ phần Sữa Việt Nam',
     description: 'Tên tiếng Việt',
     required: false,
   })
-  organName?: string;
+  organ_name?: string;
 
   @ApiProperty({
     example: 'STO',
     description: 'Mã nhóm sản phẩm',
     required: false,
   })
-  productGrpID?: string;
+  product_grp_id?: string;
 
   @ApiProperty({
     example: 61600,

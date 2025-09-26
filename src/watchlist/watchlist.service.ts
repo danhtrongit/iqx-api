@@ -202,7 +202,7 @@ export class WatchlistService {
       .leftJoinAndSelect('watchlist.symbol', 'symbol')
       .select(['symbol', 'COUNT(watchlist.id) as count'])
       .groupBy(
-        'symbol.id, symbol.symbol, symbol.organName, symbol.organShortName, symbol.type, symbol.board, symbol.createdAt, symbol.updatedAt',
+        'symbol.id, symbol.symbol, symbol.organ_name, symbol.organ_short_name, symbol.type, symbol.board, symbol.createdAt, symbol.updatedAt',
       )
       .orderBy('count', 'DESC')
       .limit(limit)
@@ -212,12 +212,17 @@ export class WatchlistService {
       symbol: {
         id: item.symbol_id,
         symbol: item.symbol_symbol,
-        organName: item.symbol_organName,
-        organShortName: item.symbol_organShortName,
         type: item.symbol_type,
         board: item.symbol_board,
-        createdAt: item.symbol_createdAt,
-        updatedAt: item.symbol_updatedAt,
+        en_organ_name: item.symbol_enOrganName || null,
+        organ_short_name: item.symbol_organ_short_name || null,
+        organ_name: item.symbol_organ_name || null,
+        product_grp_id: item.symbol_productGrpId || null,
+        created_at: item.symbol_createdAt,
+        updated_at: item.symbol_updatedAt,
+        virtualTransactions: [],
+        virtualHoldings: [],
+        watchlists: [],
       } as Symbol,
       count: parseInt(item.count),
     }));

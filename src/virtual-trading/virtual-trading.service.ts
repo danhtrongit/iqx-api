@@ -598,7 +598,7 @@ export class VirtualTradingService {
         portfolio.holdings?.map((holding) => ({
           id: holding.id,
           symbolCode: holding.symbolCode,
-          symbolName: holding.symbol?.organShortName || holding.symbolCode,
+          symbolName: holding.symbol?.organ_short_name || holding.symbolCode,
           quantity: holding.quantity,
           averagePrice: holding.averagePrice,
           currentPrice: holding.currentPrice,

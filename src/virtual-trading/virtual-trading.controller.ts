@@ -228,7 +228,7 @@ export class VirtualTradingController {
         id: transaction.id,
         symbolCode: transaction.symbolCode,
         symbolName:
-          transaction.symbol?.organShortName || transaction.symbolCode,
+          transaction.symbol?.organ_short_name || transaction.symbolCode,
         transactionType: transaction.transactionType,
         quantity: transaction.quantity,
         pricePerShare: transaction.pricePerShare,

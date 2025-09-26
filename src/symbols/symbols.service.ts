@@ -116,10 +116,10 @@ export class SymbolsService {
       symbol: symbol.symbol,
       type: symbol.type,
       board: symbol.board,
-      enOrganName: symbol.enOrganName,
-      organShortName: symbol.organShortName,
-      organName: symbol.organName,
-      productGrpID: symbol.productGrpID,
+      en_organ_name: symbol.en_organ_name,
+      organ_short_name: symbol.organ_short_name,
+      organ_name: symbol.organ_name,
+      product_grp_id: symbol.product_grp_id,
     }));
 
     if (includePrices) {
@@ -187,10 +187,10 @@ export class SymbolsService {
                   symbol: symbolData.symbol,
                   type: symbolData.type,
                   board: symbolData.board,
-                  enOrganName: symbolData.enOrganName,
-                  organShortName: symbolData.organShortName,
-                  organName: symbolData.organName,
-                  productGrpID: symbolData.productGrpID,
+                  en_organ_name: symbolData.en_organ_name,
+                  organ_short_name: symbolData.organ_short_name,
+                  organ_name: symbolData.organ_name,
+                  product_grp_id: symbolData.product_grp_id,
                 },
                 ['id'],
               );
@@ -295,10 +295,10 @@ export class SymbolsService {
       symbol: symbol.symbol,
       type: symbol.type,
       board: symbol.board,
-      enOrganName: symbol.enOrganName,
-      organShortName: symbol.organShortName,
-      organName: symbol.organName,
-      productGrpID: symbol.productGrpID,
+      en_organ_name: symbol.en_organ_name,
+      organ_short_name: symbol.organ_short_name,
+      organ_name: symbol.organ_name,
+      product_grp_id: symbol.product_grp_id,
     }));
 
     if (includePrices) {

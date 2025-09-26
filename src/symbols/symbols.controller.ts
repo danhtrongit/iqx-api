@@ -159,10 +159,10 @@ export class SymbolsController {
       symbol: data.symbol,
       type: data.type,
       board: data.board,
-      enOrganName: data.enOrganName,
-      organShortName: data.organShortName,
-      organName: data.organName,
-      productGrpID: data.productGrpID,
+      en_organ_name: data.en_organ_name,
+      organ_short_name: data.organ_short_name,
+      organ_name: data.organ_name,
+      product_grp_id: data.product_grp_id,
     };
 
     // Add price if requested
