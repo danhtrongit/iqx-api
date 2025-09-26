@@ -1,3 +1,6 @@
+// Fix crypto module issue
+(global as any).crypto = require('crypto');
+
 import 'crypto';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
