@@ -14,19 +14,34 @@ async function bootstrap() {
     new FastifyAdapter() as any,
   );
 
-  // Enable CORS with permissive settings (effectively disabling CORS restrictions)
+  // Enable CORS with specific configuration to prevent redirect issues
   const corsPlugin = await import('@fastify/cors');
   await app.register(corsPlugin.default as any, {
-    origin: true,
+    origin: [
+      'http://localhost:5173', // Vite dev server
+      'http://localhost:3000', // Alternative local port
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3000',
+      'https://iqx.vn',
+      'https://www.iqx.vn',
+      'http://api.iqx.vn',
+      'https://api.iqx.vn'
+    ],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
       'Content-Type',
       'Authorization',
       'X-Requested-With',
       'Accept',
       'Origin',
+      'Cache-Control',
+      'X-HTTP-Method-Override',
+      'Pragma',
+      'user-agent'
     ],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   });
 
   // Set global prefix for all routes
