@@ -329,10 +329,16 @@ export class SymbolsService {
     for (let i = 0; i < symbols.length; i += batchSize) {
       const batch = symbols.slice(i, i + batchSize);
       const batchPromises = batch.map(async (symbol) => {
-        const priceData = await this.getCurrentPrice(symbol.symbol);
+        const priceData = await this.getOHLCData(symbol.symbol);
         return {
           ...symbol,
-          currentPrice: priceData.price,
+          currentPrice: priceData.currentPrice,
+          openPrice: priceData.openPrice,
+          highPrice: priceData.highPrice,
+          lowPrice: priceData.lowPrice,
+          volume: priceData.volume,
+          percentageChange: priceData.percentageChange,
+          previousClosePrice: priceData.previousClosePrice,
           priceUpdatedAt: priceData.timestamp.toISOString(),
         };
       });
@@ -342,6 +348,126 @@ export class SymbolsService {
     }
 
     return results;
+  }
+
+  async getOHLCData(symbolCode: string): Promise<{
+    currentPrice: number | null;
+    openPrice: number | null;
+    highPrice: number | null;
+    lowPrice: number | null;
+    volume: number | null;
+    percentageChange: number | null;
+    previousClosePrice: number | null;
+    timestamp: Date;
+  }> {
+    try {
+      const now = Date.now();
+      const to = Math.floor(now / 1000);
+
+      const response = await fetch(
+        'https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Referer: 'https://trading.vietcap.com.vn/',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          body: JSON.stringify({
+            timeFrame: 'ONE_DAY',
+            symbols: [symbolCode],
+            to: to,
+            countBack: 2,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        this.logger.error(
+          `HTTP error: ${response.status} for symbol ${symbolCode}`,
+        );
+        return {
+          currentPrice: null,
+          openPrice: null,
+          highPrice: null,
+          lowPrice: null,
+          volume: null,
+          percentageChange: null,
+          previousClosePrice: null,
+          timestamp: new Date(),
+        };
+      }
+
+      const data: StockPrice[] = await response.json();
+
+      if (data && data.length > 0) {
+        const symbolData = data[0];
+
+        // Current day data (latest) - index 1
+        const currentPrice =
+          symbolData.c && symbolData.c.length > 1 ? symbolData.c[1] : null;
+        const openPrice =
+          symbolData.o && symbolData.o.length > 1 ? symbolData.o[1] : null;
+        const highPrice =
+          symbolData.h && symbolData.h.length > 1 ? symbolData.h[1] : null;
+        const lowPrice =
+          symbolData.l && symbolData.l.length > 1 ? symbolData.l[1] : null;
+        const volume =
+          symbolData.v && symbolData.v.length > 1 ? symbolData.v[1] : null;
+
+        // Previous day data for comparison - index 0
+        const previousClosePrice =
+          symbolData.c && symbolData.c.length > 0 ? symbolData.c[0] : null;
+
+        // Calculate percentage change
+        let percentageChange: number | null = null;
+        if (currentPrice && previousClosePrice && previousClosePrice > 0) {
+          percentageChange = Number(
+            (
+              ((currentPrice - previousClosePrice) / previousClosePrice) *
+              100
+            ).toFixed(2),
+          );
+        }
+
+        return {
+          currentPrice,
+          openPrice,
+          highPrice,
+          lowPrice,
+          volume,
+          percentageChange,
+          previousClosePrice,
+          timestamp: new Date(),
+        };
+      }
+
+      return {
+        currentPrice: null,
+        openPrice: null,
+        highPrice: null,
+        lowPrice: null,
+        volume: null,
+        percentageChange: null,
+        previousClosePrice: null,
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Lỗi khi lấy OHLC data ${symbolCode}: ${error.message}`,
+      );
+      return {
+        currentPrice: null,
+        openPrice: null,
+        highPrice: null,
+        lowPrice: null,
+        volume: null,
+        percentageChange: null,
+        previousClosePrice: null,
+        timestamp: new Date(),
+      };
+    }
   }
 
   async getCurrentPrice(

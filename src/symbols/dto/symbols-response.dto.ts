@@ -54,6 +54,48 @@ export class SymbolResponseDto {
     required: false,
   })
   priceUpdatedAt?: string;
+
+  @ApiProperty({
+    example: 61800,
+    description: 'Giá mở cửa (VND)',
+    required: false,
+  })
+  openPrice?: number | null;
+
+  @ApiProperty({
+    example: 62000,
+    description: 'Giá cao nhất (VND)',
+    required: false,
+  })
+  highPrice?: number | null;
+
+  @ApiProperty({
+    example: 61400,
+    description: 'Giá thấp nhất (VND)',
+    required: false,
+  })
+  lowPrice?: number | null;
+
+  @ApiProperty({
+    example: 1250000,
+    description: 'Khối lượng giao dịch',
+    required: false,
+  })
+  volume?: number | null;
+
+  @ApiProperty({
+    example: 2.5,
+    description: 'Phần trăm thay đổi so với ngày hôm trước (%)',
+    required: false,
+  })
+  percentageChange?: number | null;
+
+  @ApiProperty({
+    example: 61100,
+    description: 'Giá đóng cửa ngày hôm trước (VND)',
+    required: false,
+  })
+  previousClosePrice?: number | null;
 }
 
 export class PaginationMetaDto {

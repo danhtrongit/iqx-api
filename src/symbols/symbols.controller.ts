@@ -173,8 +173,14 @@ export class SymbolsController {
       Number(includePrices) === 1;
 
     if (shouldIncludePrices) {
-      const priceData = await this.symbolsService.getCurrentPrice(data.symbol);
-      symbolResponse.currentPrice = priceData.price;
+      const priceData = await this.symbolsService.getOHLCData(data.symbol);
+      symbolResponse.currentPrice = priceData.currentPrice;
+      symbolResponse.openPrice = priceData.openPrice;
+      symbolResponse.highPrice = priceData.highPrice;
+      symbolResponse.lowPrice = priceData.lowPrice;
+      symbolResponse.volume = priceData.volume;
+      symbolResponse.percentageChange = priceData.percentageChange;
+      symbolResponse.previousClosePrice = priceData.previousClosePrice;
       symbolResponse.priceUpdatedAt = priceData.timestamp.toISOString();
     }
 
