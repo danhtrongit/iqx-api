@@ -11,6 +11,8 @@ import { Session } from '../entities/session.entity';
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { PhoneVerificationCode } from '../entities/phone-verification-code.entity';
 import { AuditLog } from '../entities/audit-log.entity';
+import { ReferralCode } from '../entities/referral-code.entity';
+import { ReferralService } from '../referral/referral.service';
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { AuditLog } from '../entities/audit-log.entity';
       PasswordResetToken,
       PhoneVerificationCode,
       AuditLog,
+      ReferralCode,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -34,7 +37,7 @@ import { AuditLog } from '../entities/audit-log.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, ReferralService],
   exports: [AuthService, JwtStrategy, PassportModule],
 })
 export class AuthModule {}

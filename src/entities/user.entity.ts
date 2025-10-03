@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Session } from './session.entity';
 import { UserPii } from './user-pii.entity';
@@ -15,6 +17,8 @@ import { AuditLog } from './audit-log.entity';
 import { VirtualPortfolio } from './virtual-portfolio.entity';
 import { UserSubscription } from './user-subscription.entity';
 import { Watchlist } from './watchlist.entity';
+import { ReferralCode } from './referral-code.entity';
+import { Commission } from './commission.entity';
 
 @Entity('users')
 export class User {
@@ -45,6 +49,10 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  // Referral fields
+  @Column({ type: 'varchar', length: '36', name: 'referred_by_id', nullable: true })
+  referredById?: string;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
@@ -74,4 +82,21 @@ export class User {
 
   @OneToMany(() => Watchlist, (watchlist) => watchlist.user)
   watchlists: Watchlist[];
+
+  @OneToMany(() => ReferralCode, (referralCode) => referralCode.user)
+  referralCodes: ReferralCode[];
+
+  @OneToMany(() => Commission, (commission) => commission.user)
+  commissions: Commission[];
+
+  // User được giới thiệu bởi user nào
+  @ManyToOne(() => User, (user) => user.referrals, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'referred_by_id' })
+  referredBy?: User;
+
+  // Danh sách users được giới thiệu bởi user này
+  @OneToMany(() => User, (user) => user.referredBy)
+  referrals: User[];
 }

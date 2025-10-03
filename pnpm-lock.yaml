@@ -50,6 +50,9 @@ importers:
       '@nestjs/websockets':
         specifier: ^11.1.6
         version: 11.1.6(@nestjs/common@11.1.6(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.6)(@nestjs/platform-socket.io@11.1.6)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@payos/node':
+        specifier: ^2.0.3
+        version: 2.0.3
       '@types/crypto-js':
         specifier: ^4.2.2
         version: 4.2.2
@@ -949,6 +952,9 @@ packages:
 
   '@paralleldrive/cuid2@2.2.2':
     resolution: {integrity: sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==}
+
+  '@payos/node@2.0.3':
+    resolution: {integrity: sha512-VDQlpLIo22mfOyFvizBSxJO8tkwxnG8J7WryQMorFNSUi9T7QrUQRBIusdzPsGCG5/DxxURMGHJ8SPNFS4puPg==}
 
   '@phc/format@1.0.0':
     resolution: {integrity: sha512-m7X9U6BG2+J+R1lSOdCiITLLrxm+cWlNI3HUFA92oLO77ObGNzaKdh8pMLqdZcshtkKuV84olNNXDfMc4FezBQ==}
@@ -4918,6 +4924,8 @@ snapshots:
   '@paralleldrive/cuid2@2.2.2':
     dependencies:
       '@noble/hashes': 1.8.0
+
+  '@payos/node@2.0.3': {}
 
   '@phc/format@1.0.0': {}
 

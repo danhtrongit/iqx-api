@@ -12,3 +12,4 @@ export { VirtualLeaderboard } from './virtual-leaderboard.entity';
 export { Watchlist } from './watchlist.entity';
 export { SubscriptionPackage } from './subscription-package.entity';
 export { UserSubscription } from './user-subscription.entity';
+export { Payment } from './payment.entity';

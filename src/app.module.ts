@@ -10,6 +10,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionModule } from './subscriptions/subscription.module';
 import { WatchlistModule } from './watchlist/watchlist.module';
 import { MarketDataModule } from './market-data/market-data.module';
+import { PaymentModule } from './payment/payment.module';
+import { ReferralModule } from './referral/referral.module';
 import { User } from './entities/user.entity';
 import { UserPii } from './entities/user-pii.entity';
 import { Session } from './entities/session.entity';
@@ -24,6 +26,10 @@ import { VirtualLeaderboard } from './entities/virtual-leaderboard.entity';
 import { SubscriptionPackage } from './entities/subscription-package.entity';
 import { UserSubscription } from './entities/user-subscription.entity';
 import { Watchlist } from './entities/watchlist.entity';
+import { Payment } from './entities/payment.entity';
+import { ReferralCode } from './entities/referral-code.entity';
+import { Commission } from './entities/commission.entity';
+import { CommissionSetting } from './entities/commission-setting.entity';
 
 @Module({
   imports: [
@@ -54,6 +60,10 @@ import { Watchlist } from './entities/watchlist.entity';
           SubscriptionPackage,
           UserSubscription,
           Watchlist,
+          Payment,
+          ReferralCode,
+          Commission,
+          CommissionSetting,
         ],
         synchronize: false,
         logging: configService.get('NODE_ENV') === 'development',
@@ -67,6 +77,8 @@ import { Watchlist } from './entities/watchlist.entity';
     SubscriptionModule,
     WatchlistModule,
     MarketDataModule,
+    PaymentModule,
+    ReferralModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -52,6 +52,15 @@ export class RegisterDto {
     message: 'Số điện thoại không đúng định dạng E.164',
   })
   phoneE164?: string;
+
+  @ApiProperty({
+    example: 'ABC12345',
+    description: 'Mã giới thiệu',
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: 'Mã giới thiệu phải là chuỗi ký tự' })
+  referralCode?: string;
 }
 
 export class LoginDto {

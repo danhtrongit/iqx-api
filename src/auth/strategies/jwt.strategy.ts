@@ -37,6 +37,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     }
 
-    return user;
+    // Map to format expected by controllers
+    return {
+      ...user,
+      userId: user.id, // Add userId for backward compatibility
+    };
   }
 }

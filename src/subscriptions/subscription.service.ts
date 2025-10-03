@@ -250,4 +250,87 @@ export class SubscriptionService {
       },
     };
   }
+
+  async seedSamplePackages(): Promise<SubscriptionPackage[]> {
+    const samplePackages = [
+      {
+        name: 'Gói Cơ Bản',
+        description:
+          'Gói cơ bản cho người dùng mới bắt đầu với các tính năng cơ bản',
+        price: 99000,
+        currency: 'VND',
+        durationDays: 30,
+        isActive: true,
+        maxVirtualPortfolios: 3,
+        dailyApiLimit: 1000,
+        features: {
+          realTimeData: false,
+          advancedCharts: false,
+          portfolioAnalysis: true,
+          emailSupport: true,
+        },
+      },
+      {
+        name: 'Gói Chuyên Nghiệp',
+        description:
+          'Gói dành cho nhà đầu tư chuyên nghiệp với nhiều tính năng nâng cao',
+        price: 299000,
+        currency: 'VND',
+        durationDays: 30,
+        isActive: true,
+        maxVirtualPortfolios: 10,
+        dailyApiLimit: 5000,
+        features: {
+          realTimeData: true,
+          advancedCharts: true,
+          portfolioAnalysis: true,
+          emailSupport: true,
+          prioritySupport: true,
+          customAlerts: true,
+        },
+      },
+      {
+        name: 'Gói Doanh Nghiệp',
+        description:
+          'Gói cao cấp nhất với đầy đủ tính năng và hỗ trợ không giới hạn',
+        price: 999000,
+        currency: 'VND',
+        durationDays: 30,
+        isActive: true,
+        maxVirtualPortfolios: 999,
+        dailyApiLimit: 999999,
+        features: {
+          realTimeData: true,
+          advancedCharts: true,
+          portfolioAnalysis: true,
+          emailSupport: true,
+          prioritySupport: true,
+          customAlerts: true,
+          apiAccess: true,
+          whiteLabel: true,
+          dedicatedSupport: true,
+        },
+      },
+    ];
+
+    const createdPackages: SubscriptionPackage[] = [];
+
+    for (const packageData of samplePackages) {
+      const existingPackage = await this.subscriptionPackageRepository.findOne({
+        where: { name: packageData.name },
+      });
+
+      if (!existingPackage) {
+        const newPackage =
+          this.subscriptionPackageRepository.create(packageData);
+        const savedPackage =
+          await this.subscriptionPackageRepository.save(newPackage);
+        createdPackages.push(savedPackage);
+      } else {
+        createdPackages.push(existingPackage);
+      }
+    }
+
+    return createdPackages;
+  }
 }

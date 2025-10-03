@@ -27,6 +27,7 @@ import {
 } from './dto/auth.dto';
 import { AuthResponse, MessageResponse } from './dto/response.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { ReferralService } from '../referral/referral.service';
 
 @Injectable()
 export class AuthService {
@@ -43,6 +44,7 @@ export class AuthService {
     private auditLogRepository: Repository<AuditLog>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private referralService: ReferralService,
   ) {}
 
   async register(
@@ -50,7 +52,7 @@ export class AuthService {
     userAgent?: string,
     ipAddress?: string,
   ): Promise<AuthResponse> {
-    const { email, password, displayName, fullName, phoneE164 } = registerDto;
+    const { email, password, displayName, fullName, phoneE164, referralCode } = registerDto;
 
     // Kiểm tra email đã tồn tại
     const existingUser = await this.userRepository.findOne({
@@ -70,6 +72,16 @@ export class AuthService {
       }
     }
 
+    // Xác thực referral code nếu có
+    let referrerId: string | undefined;
+    if (referralCode) {
+      const referral = await this.referralService.getReferralByCode(referralCode);
+      if (!referral) {
+        throw new BadRequestException('Mã giới thiệu không hợp lệ');
+      }
+      referrerId = referral.userId;
+    }
+
     // Hash mật khẩu
     const passwordHash = await argon2.hash(password);
 
@@ -80,9 +92,31 @@ export class AuthService {
       displayName,
       fullName,
       phoneE164,
+      referredById: referrerId,
     });
 
     const savedUser = await this.userRepository.save(user);
+
+    // Tự động tạo mã giới thiệu cho user mới
+    try {
+      await this.referralService.createReferralCode(savedUser.id);
+    } catch (error) {
+      // Log error nhưng không fail registration nếu tạo referral code thất bại
+      console.error('Error creating referral code during registration:', error);
+    }
+
+    // Nếu có referral code, cập nhật số lượng referrals
+    if (referrerId) {
+      try {
+        const referralCodeEntity = await this.referralService.getReferralCode(referrerId);
+        if (referralCodeEntity) {
+          referralCodeEntity.totalReferrals += 1;
+          await this.referralService['referralCodeRepository'].save(referralCodeEntity);
+        }
+      } catch (error) {
+        console.error('Lỗi khi cập nhật referral count:', error);
+      }
+    }
 
     // Tạo tokens
     const { accessToken, refreshToken } = await this.generateTokens(savedUser);
@@ -96,7 +130,7 @@ export class AuthService {
       savedUser.id,
       ipAddress,
       userAgent,
-      { email },
+      { email, referralCode },
     );
 
     return {
