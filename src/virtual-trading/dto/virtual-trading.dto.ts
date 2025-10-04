@@ -32,6 +32,8 @@ export interface PortfolioSummaryDto {
   totalAssetValue: number;
   stockValue: number;
   totalProfitLoss: number;
+  unrealizedProfitLoss: number; // Lợi nhuận dự kiến (chưa bán)
+  realizedProfitLoss: number; // Lợi nhuận đã thực hiện (đã bán)
   profitLossPercentage: number;
   totalTransactions: number;
   successfulTrades: number;

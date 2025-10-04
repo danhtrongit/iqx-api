@@ -78,7 +78,7 @@ export class VirtualTradingService {
       relations: ['holdings', 'holdings.symbol'],
     });
 
-    return this.mapToPortfolioSummary(updatedPortfolio!);
+    return await this.mapToPortfolioSummary(updatedPortfolio!);
   }
 
   async buyStock(
@@ -481,6 +481,7 @@ export class VirtualTradingService {
     const queryBuilder = this.portfolioRepository
       .createQueryBuilder('portfolio')
       .leftJoinAndSelect('portfolio.user', 'user')
+      .leftJoinAndSelect('portfolio.holdings', 'holdings')
       .where('portfolio.isActive = :isActive', { isActive: true })
       .andWhere('portfolio.totalTransactions > :minTransactions', {
         minTransactions: 0,
@@ -499,22 +500,37 @@ export class VirtualTradingService {
 
     const portfolios = await queryBuilder.getMany();
 
-    return portfolios.map((portfolio, index) => ({
-      rank: index + 1,
-      userId: portfolio.userId,
-      username:
-        portfolio.user?.fullName ||
-        portfolio.user?.email?.split('@')[0] ||
-        'Anonymous',
-      totalAssetValue: portfolio.totalAssetValue,
-      profitLoss: portfolio.totalProfitLoss,
-      profitLossPercentage: portfolio.profitLossPercentage,
-      totalTransactions: portfolio.totalTransactions,
-      successfulTrades: portfolio.successfulTrades,
-      cashBalance: portfolio.cashBalance,
-      stockValue: portfolio.stockValue,
-      createdAt: portfolio.createdAt,
-    }));
+    return portfolios.map((portfolio, index) => {
+      // Tính unrealized profit/loss từ holdings
+      let unrealizedProfitLoss = 0;
+      if (portfolio.holdings) {
+        for (const holding of portfolio.holdings) {
+          unrealizedProfitLoss += holding.unrealizedProfitLoss;
+        }
+      }
+
+      // Tính realized profit/loss
+      const realizedProfitLoss = portfolio.totalProfitLoss - unrealizedProfitLoss;
+
+      return {
+        rank: index + 1,
+        userId: portfolio.userId,
+        username:
+          portfolio.user?.fullName ||
+          portfolio.user?.email?.split('@')[0] ||
+          'Anonymous',
+        totalAssetValue: portfolio.totalAssetValue,
+        profitLoss: portfolio.totalProfitLoss,
+        unrealizedProfitLoss,
+        realizedProfitLoss,
+        profitLossPercentage: portfolio.profitLossPercentage,
+        totalTransactions: portfolio.totalTransactions,
+        successfulTrades: portfolio.successfulTrades,
+        cashBalance: portfolio.cashBalance,
+        stockValue: portfolio.stockValue,
+        createdAt: portfolio.createdAt,
+      };
+    });
   }
 
   async getStockPrice(
@@ -581,9 +597,59 @@ export class VirtualTradingService {
     };
   }
 
-  private mapToPortfolioSummary(
+  private async calculateRealizedProfitLoss(
+    portfolioId: string,
+  ): Promise<number> {
+    // Tính realized profit/loss từ tất cả các giao dịch SELL
+    const sellTransactions = await this.transactionRepository.find({
+      where: {
+        portfolioId,
+        transactionType: VirtualTransactionType.SELL,
+        status: VirtualTransactionStatus.COMPLETED,
+      },
+    });
+
+    // Cần tính: Giá bán - Giá vốn - Phí - Thuế
+    // Giá bán = totalAmount
+    // Giá vốn = cần tính từ average price tại thời điểm bán
+    // Phí + Thuế = fee + tax
+    
+    // Tạm thời sử dụng công thức đơn giản:
+    // realized P/L = netAmount - (số tiền đã bỏ ra để mua số lượng đó)
+    // Vì không lưu giá vốn trong transaction, tính gần đúng:
+    // realized P/L ≈ tổng lãi/lỗ - unrealized P/L hiện tại
+    
+    // Cách chính xác: tính từ từng transaction bán
+    let totalRealizedPL = 0;
+    
+    for (const transaction of sellTransactions) {
+      // Lợi nhuận thực = Tiền nhận được - Giá vốn
+      // Giá vốn gần đúng = (totalAmount / (1 - fee% - tax%)) * originalCostRatio
+      // Nhưng không có đủ thông tin, sử dụng công thức đơn giản:
+      // Profit = netAmount - originalCost (không có originalCost)
+      
+      // Tạm thời: không tính được chính xác vì thiếu originalCost
+      // Sẽ tính sau = totalProfitLoss - unrealizedProfitLoss
+    }
+
+    return totalRealizedPL;
+  }
+
+  private async mapToPortfolioSummary(
     portfolio: VirtualPortfolio,
-  ): PortfolioSummaryDto {
+  ): Promise<PortfolioSummaryDto> {
+    // Tính unrealized profit/loss từ holdings
+    let unrealizedProfitLoss = 0;
+    if (portfolio.holdings) {
+      for (const holding of portfolio.holdings) {
+        unrealizedProfitLoss += holding.unrealizedProfitLoss;
+      }
+    }
+
+    // Tính realized profit/loss
+    // realized = total - unrealized
+    const realizedProfitLoss = portfolio.totalProfitLoss - unrealizedProfitLoss;
+
     return {
       id: portfolio.id,
       userId: portfolio.userId,
@@ -591,6 +657,8 @@ export class VirtualTradingService {
       totalAssetValue: portfolio.totalAssetValue,
       stockValue: portfolio.stockValue,
       totalProfitLoss: portfolio.totalProfitLoss,
+      unrealizedProfitLoss,
+      realizedProfitLoss,
       profitLossPercentage: portfolio.profitLossPercentage,
       totalTransactions: portfolio.totalTransactions,
       successfulTrades: portfolio.successfulTrades,

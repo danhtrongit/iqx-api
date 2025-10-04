@@ -59,6 +59,18 @@ export class PortfolioDetailDto {
   @ApiProperty({ example: 1000000000, description: 'Tổng lãi/lỗ' })
   totalProfitLoss: number;
 
+  @ApiProperty({
+    example: 500000000,
+    description: 'Lợi nhuận dự kiến (chưa thực hiện - từ holdings hiện tại)',
+  })
+  unrealizedProfitLoss: number;
+
+  @ApiProperty({
+    example: 300000000,
+    description: 'Lợi nhuận đã thực hiện (từ các giao dịch bán)',
+  })
+  realizedProfitLoss: number;
+
   @ApiProperty({ example: 10.0, description: 'Tỷ lệ % lãi/lỗ tổng' })
   profitLossPercentage: number;
 
@@ -248,8 +260,20 @@ export class LeaderboardItemDto {
   @ApiProperty({ example: 12500000000, description: 'Tổng giá trị tài sản' })
   totalAssetValue: number;
 
-  @ApiProperty({ example: 2500000000, description: 'Lãi/lỗ' })
+  @ApiProperty({ example: 2500000000, description: 'Tổng lãi/lỗ' })
   profitLoss: number;
+
+  @ApiProperty({
+    example: 1500000000,
+    description: 'Lợi nhuận dự kiến (chưa thực hiện)',
+  })
+  unrealizedProfitLoss: number;
+
+  @ApiProperty({
+    example: 1000000000,
+    description: 'Lợi nhuận đã thực hiện',
+  })
+  realizedProfitLoss: number;
 
   @ApiProperty({ example: 25.0, description: 'Tỷ lệ % lãi/lỗ' })
   profitLossPercentage: number;

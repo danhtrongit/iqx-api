@@ -23,13 +23,35 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+IQX API - Hệ thống giao dịch chứng khoán ảo (Virtual Trading) với tính năng:
+- 📊 Giao dịch chứng khoán ảo với dữ liệu thị trường thực
+- 💰 Hệ thống thanh toán (PayOS integration)
+- 🎁 Hệ thống giới thiệu & hoa hồng (F1, F2, F3)
+- 📦 Quản lý gói subscription
+- 👥 Xếp hạng leaderboard
+- 🔔 Watchlist & alerts
+
+Built with [Nest](https://github.com/nestjs/nest) framework.
 
 ## Project setup
 
 ```bash
 $ pnpm install
 ```
+
+## Database Migration
+
+**⚠️ Quan trọng: Chạy migrations trước khi start ứng dụng**
+
+```bash
+# Quick start (recommended)
+$ ./run-migrations.sh full
+
+# Hoặc chạy thủ công
+$ pnpm run migration:run
+```
+
+📖 Xem chi tiết: [MIGRATION-QUICK-START.md](./MIGRATION-QUICK-START.md)
 
 ## Compile and run the project
 
@@ -69,6 +91,68 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## API Documentation
+
+API documentation is available at `http://localhost:3000/api` when running in development mode.
+
+### Main Features
+
+#### 🔐 Authentication
+- Email/Password login with JWT
+- Phone verification
+- Password reset
+- Session management
+
+#### 💰 Payment System
+- PayOS integration for online payment
+- Bank transfer support
+- Webhook handling
+- Payment history
+
+#### 🎁 Referral & Commission System
+- Generate referral codes
+- Track referrals (F1, F2, F3...)
+- Automatic commission calculation
+- Multi-tier commission support (10%, 3.5%, 1.5%)
+
+#### 📊 Virtual Trading
+- Buy/Sell stocks with virtual money
+- Portfolio management
+- Transaction history
+- Profit/Loss tracking
+- Real-time market data
+
+#### 🏆 Leaderboard
+- Rank by total asset value
+- Rank by profit/loss percentage
+- Win rate statistics
+
+#### 📦 Subscription Management
+- Multiple subscription packages
+- Auto-renewal support
+- Payment integration
+
+## Environment Variables
+
+Create a `.env` file in the `api/` directory:
+
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=iqx
+
+# JWT
+JWT_SECRET=your_jwt_secret
+
+# PayOS
+PAYOS_CLIENT_ID=your_client_id
+PAYOS_API_KEY=your_api_key
+PAYOS_CHECKSUM_KEY=your_checksum_key
+```
 
 ## Resources
 
