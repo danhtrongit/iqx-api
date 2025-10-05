@@ -13,3 +13,6 @@ export { Watchlist } from './watchlist.entity';
 export { SubscriptionPackage } from './subscription-package.entity';
 export { UserSubscription } from './user-subscription.entity';
 export { Payment } from './payment.entity';
+export { ApiUsage } from './api-usage.entity';
+export { ApiExtensionPackage } from './api-extension-package.entity';
+export { UserApiExtension } from './user-api-extension.entity';

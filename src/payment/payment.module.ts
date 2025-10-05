@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentController } from './payment.controller';
@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { SubscriptionPackage } from '../entities/subscription-package.entity';
 import { UserSubscription } from '../entities/user-subscription.entity';
 import { ReferralModule } from '../referral/referral.module';
+import { ApiExtensionModule } from '../api-extension/api-extension.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ReferralModule } from '../referral/referral.module';
     ]),
     ConfigModule,
     ReferralModule,
+    forwardRef(() => ApiExtensionModule),
   ],
   controllers: [PaymentController],
   providers: [PaymentService, PayOSService],

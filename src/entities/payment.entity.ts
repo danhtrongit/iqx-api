@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { UserSubscription } from './user-subscription.entity';
+import { UserApiExtension } from './user-api-extension.entity';
 
 export enum PaymentStatus {
   PENDING = 'pending',
@@ -25,6 +26,11 @@ export enum PaymentMethod {
   OTHER = 'other',
 }
 
+export enum PaymentType {
+  SUBSCRIPTION = 'subscription',
+  EXTENSION = 'extension',
+}
+
 @Entity('payments')
 @Index(['userId', 'status'])
 @Index(['orderCode'])
@@ -38,6 +44,20 @@ export class Payment {
 
   @Column({ name: 'subscription_id', type: 'varchar', length: 255, nullable: true })
   subscriptionId?: string;
+
+  @Column({ name: 'extension_id', type: 'varchar', length: 255, nullable: true })
+  extensionId?: string;
+
+  @Column({
+    type: 'enum',
+    enum: PaymentType,
+    default: PaymentType.SUBSCRIPTION,
+    name: 'payment_type',
+  })
+  paymentType: PaymentType;
+
+  @Column({ name: 'package_id', type: 'varchar', length: 255, nullable: true })
+  packageId?: string;
 
   @Column({ name: 'order_code', type: 'bigint', unique: true })
   orderCode: number;
@@ -132,6 +152,13 @@ export class Payment {
   })
   @JoinColumn({ name: 'subscription_id' })
   subscription?: UserSubscription;
+
+  @ManyToOne(() => UserApiExtension, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'extension_id' })
+  extension?: UserApiExtension;
 
   get isPending(): boolean {
     return this.status === PaymentStatus.PENDING;

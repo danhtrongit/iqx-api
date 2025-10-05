@@ -7,13 +7,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Payment, PaymentStatus } from '../entities/payment.entity';
+import { Payment, PaymentStatus, PaymentType } from '../entities/payment.entity';
 import { User } from '../entities/user.entity';
 import { SubscriptionPackage } from '../entities/subscription-package.entity';
 import { UserSubscription, SubscriptionStatus } from '../entities/user-subscription.entity';
 import { PayOSService } from './payos.service';
 import { CreatePaymentDto, PayOSWebhookDto } from './dto/payment.dto';
 import { CommissionService } from '../referral/commission.service';
+import { ApiExtensionPaymentService } from '../api-extension/api-extension-payment.service';
 
 @Injectable()
 export class PaymentService {
@@ -35,6 +36,7 @@ export class PaymentService {
     private payosService: PayOSService,
     private configService: ConfigService,
     private commissionService: CommissionService,
+    private apiExtensionPaymentService: ApiExtensionPaymentService,
   ) {}
 
   /**
@@ -201,15 +203,21 @@ export class PaymentService {
 
       await this.paymentRepository.save(payment);
 
-      // Kích hoạt subscription
-      await this.activateSubscription(payment);
+      // Kích hoạt subscription hoặc extension tùy theo paymentType
+      if (payment.paymentType === PaymentType.SUBSCRIPTION) {
+        // Kích hoạt subscription
+        await this.activateSubscription(payment);
 
-      // Tính hoa hồng cho upline
-      try {
-        await this.commissionService.processCommission(payment.id);
-        this.logger.log(`Commission processed for payment: ${payment.id}`);
-      } catch (error) {
-        this.logger.error(`Error processing commission for payment ${payment.id}:`, error);
+        // Tính hoa hồng cho upline
+        try {
+          await this.commissionService.processCommission(payment.id);
+          this.logger.log(`Commission processed for payment: ${payment.id}`);
+        } catch (error) {
+          this.logger.error(`Error processing commission for payment ${payment.id}:`, error);
+        }
+      } else if (payment.paymentType === PaymentType.EXTENSION) {
+        // Kích hoạt extension
+        await this.apiExtensionPaymentService.activateExtension(payment);
       }
 
       this.logger.log(`Payment completed for order: ${webhookData.data.orderCode}`);

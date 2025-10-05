@@ -12,6 +12,9 @@ import { WatchlistModule } from './watchlist/watchlist.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { PaymentModule } from './payment/payment.module';
 import { ReferralModule } from './referral/referral.module';
+import { AdminModule } from './admin/admin.module';
+import { ChatModule } from './chat/chat.module';
+import { ApiExtensionModule } from './api-extension/api-extension.module';
 import { User } from './entities/user.entity';
 import { UserPii } from './entities/user-pii.entity';
 import { Session } from './entities/session.entity';
@@ -30,6 +33,9 @@ import { Payment } from './entities/payment.entity';
 import { ReferralCode } from './entities/referral-code.entity';
 import { Commission } from './entities/commission.entity';
 import { CommissionSetting } from './entities/commission-setting.entity';
+import { ApiUsage } from './entities/api-usage.entity';
+import { ApiExtensionPackage } from './entities/api-extension-package.entity';
+import { UserApiExtension } from './entities/user-api-extension.entity';
 
 @Module({
   imports: [
@@ -64,6 +70,9 @@ import { CommissionSetting } from './entities/commission-setting.entity';
           ReferralCode,
           Commission,
           CommissionSetting,
+          ApiUsage,
+          ApiExtensionPackage,
+          UserApiExtension,
         ],
         synchronize: false,
         logging: configService.get('NODE_ENV') === 'development',
@@ -79,6 +88,9 @@ import { CommissionSetting } from './entities/commission-setting.entity';
     MarketDataModule,
     PaymentModule,
     ReferralModule,
+    AdminModule,
+    ChatModule,
+    ApiExtensionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

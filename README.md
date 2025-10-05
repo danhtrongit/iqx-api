@@ -30,6 +30,9 @@ IQX API - Hệ thống giao dịch chứng khoán ảo (Virtual Trading) với t
 - 📦 Quản lý gói subscription
 - 👥 Xếp hạng leaderboard
 - 🔔 Watchlist & alerts
+- 🔧 **Admin Management** - Quản lý users, gắn gói, khóa/kích hoạt users
+- 🤖 **Chat API** - Tích hợp AriX AI để phân tích chứng khoán thông minh
+- 🔄 **API Extensions** - Gói mở rộng API calls cho subscription
 
 Built with [Nest](https://github.com/nestjs/nest) framework.
 
@@ -38,6 +41,43 @@ Built with [Nest](https://github.com/nestjs/nest) framework.
 ```bash
 $ pnpm install
 ```
+
+## 📚 Documentation
+
+### 🌟 **MAIN DOCUMENTATION**
+- **[COMPLETE_API_GUIDE.md](./COMPLETE_API_GUIDE.md)** ⭐ **READ THIS FIRST** (2,766 lines)
+  - Hướng dẫn đầy đủ nhất về Chat API, Extensions, Payment, Admin
+  - 50+ code examples (TypeScript, cURL, Python)
+  - Complete error handling guide
+  - Testing & deployment guide
+  
+- **[DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)** 📑 - Danh mục tất cả docs
+
+### Quick References
+- **[API_QUICK_REFERENCE.md](./API_QUICK_REFERENCE.md)** - Tra cứu nhanh endpoints
+- **[START_HERE.md](./START_HERE.md)** - Getting started guide
+
+### API Documentation
+- **[CHAT_API_V2.md](./CHAT_API_V2.md)** - Chat API detailed
+- **[API_COMPLETE_DOCUMENTATION.md](./API_COMPLETE_DOCUMENTATION.md)** - Alternative full guide
+- **[EXTENSION_PAYMENT_FLOW.md](./EXTENSION_PAYMENT_FLOW.md)** - Payment flow
+- **[API_EXTENSION_PAYMENT_COMPLETE.md](./API_EXTENSION_PAYMENT_COMPLETE.md)** - Payment complete guide
+
+### Admin Documentation
+- **[ADMIN_PACKAGE_MANAGEMENT_API.md](./ADMIN_PACKAGE_MANAGEMENT_API.md)** - Package management
+- **[USER_MANAGEMENT_API.md](./USER_MANAGEMENT_API.md)** - User management
+- **[ADMIN_OVERVIEW.md](./ADMIN_OVERVIEW.md)** - Admin features
+- **[ADMIN_ARCHITECTURE.md](./ADMIN_ARCHITECTURE.md)** - Architecture
+- **[ADMIN_SETUP.md](./ADMIN_SETUP.md)** - Setup guide
+- **[ADMIN_USE_CASES.md](./ADMIN_USE_CASES.md)** - Use cases
+- **[ADMIN_IMPLEMENTATION_SUMMARY.md](./ADMIN_IMPLEMENTATION_SUMMARY.md)** - Implementation
+
+### Technical Documentation
+- **[IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md)** - Technical summary
+- **[FINAL_IMPLEMENTATION_SUMMARY.md](./FINAL_IMPLEMENTATION_SUMMARY.md)** - Complete implementation
+- **[MIGRATIONS.md](./MIGRATIONS.md)** - Migration guide
+- **[MIGRATION-QUICK-START.md](./MIGRATION-QUICK-START.md)** - Quick start
+- **[VIRTUAL_TRADING_PROFIT_CALCULATION.md](./VIRTUAL_TRADING_PROFIT_CALCULATION.md)** - Trading logic
 
 ## Database Migration
 
@@ -132,6 +172,21 @@ API documentation is available at `http://localhost:3000/api` when running in de
 - Multiple subscription packages
 - Auto-renewal support
 - Payment integration
+
+#### 🔧 Admin User Management
+- User statistics & overview
+- Search and filter users
+- Activate/Deactivate users
+- Assign subscription packages to users
+- Manage user subscriptions (extend, suspend, cancel)
+- Update user roles
+- Full audit trail for admin actions
+
+📖 **Admin Documentation:**
+- [Admin Setup Guide](./ADMIN_SETUP.md) - How to create first admin user
+- [User Management API](./USER_MANAGEMENT_API.md) - Complete API reference
+- [Admin Use Cases](./ADMIN_USE_CASES.md) - Common workflows & examples
+- [Postman Collection](./postman-admin-collection.json) - Import for easy testing
 
 ## Environment Variables
 

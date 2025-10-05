@@ -62,6 +62,12 @@ export class UserSubscription {
   @Column({ name: 'cancellation_reason', nullable: true })
   cancellationReason?: string;
 
+  @Column({ name: 'api_calls_used', default: 0 })
+  apiCallsUsed: number;
+
+  @Column({ name: 'api_calls_limit', nullable: true })
+  apiCallsLimit?: number;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

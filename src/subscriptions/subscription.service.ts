@@ -101,6 +101,8 @@ export class SubscriptionService {
       price: subscriptionPackage.price,
       currency: subscriptionPackage.currency,
       paymentReference,
+      apiCallsUsed: 0,
+      apiCallsLimit: subscriptionPackage.apiLimit || 100,
     });
 
     return this.userSubscriptionRepository.save(userSubscription);
@@ -141,6 +143,8 @@ export class SubscriptionService {
       price: subscriptionPackage.price,
       currency: subscriptionPackage.currency,
       paymentReference,
+      apiCallsUsed: 0,
+      apiCallsLimit: subscriptionPackage.apiLimit || 100,
     });
 
     await this.userSubscriptionRepository.save(renewedSubscription);
@@ -233,7 +237,7 @@ export class SubscriptionService {
         planName: 'Free',
         features: {
           maxVirtualPortfolios: 1,
-          dailyApiLimit: 100,
+          apiLimit: 100,
         },
       };
     }
@@ -245,7 +249,7 @@ export class SubscriptionService {
       features: {
         maxVirtualPortfolios:
           activeSubscription.package.maxVirtualPortfolios || 999,
-        dailyApiLimit: activeSubscription.package.dailyApiLimit || 999999,
+        apiLimit: activeSubscription.package.apiLimit || 999999,
         ...activeSubscription.package.features,
       },
     };
@@ -262,7 +266,7 @@ export class SubscriptionService {
         durationDays: 30,
         isActive: true,
         maxVirtualPortfolios: 3,
-        dailyApiLimit: 1000,
+        apiLimit: 1000,
         features: {
           realTimeData: false,
           advancedCharts: false,
@@ -279,7 +283,7 @@ export class SubscriptionService {
         durationDays: 30,
         isActive: true,
         maxVirtualPortfolios: 10,
-        dailyApiLimit: 5000,
+        apiLimit: 5000,
         features: {
           realTimeData: true,
           advancedCharts: true,
@@ -298,7 +302,7 @@ export class SubscriptionService {
         durationDays: 30,
         isActive: true,
         maxVirtualPortfolios: 999,
-        dailyApiLimit: 999999,
+        apiLimit: 999999,
         features: {
           realTimeData: true,
           advancedCharts: true,
