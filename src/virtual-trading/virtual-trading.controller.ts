@@ -44,7 +44,7 @@ export class VirtualTradingController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Tạo portfolio đấu trường ảo',
-    description: 'Tạo portfolio với số vốn ban đầu 10 tỷ VND',
+    description: 'Tạo portfolio với số vốn ban đầu 1 tỷ VND',
   })
   @ApiResponse({
     status: 201,
@@ -239,6 +239,15 @@ export class VirtualTradingController {
         status: transaction.status,
         createdAt: transaction.createdAt,
         executedAt: transaction.executedAt,
+        // Thêm thông tin giá vốn
+        ...(transaction.averageCost && {
+          averageCost: transaction.averageCost, // Giá vốn TB (sau khi mua với BUY, trước khi bán với SELL)
+          ...(transaction.transactionType === 'SELL' && {
+            totalCost: transaction.totalCost, // Tổng giá vốn (chỉ cho SELL)
+            profitLoss: transaction.profitLoss, // Lãi/lỗ (chỉ cho SELL)
+            profitLossPercentage: transaction.profitLossPercentage, // % lãi/lỗ (chỉ cho SELL)
+          }),
+        }),
       })),
       meta: result.meta,
       message: 'Lấy lịch sử giao dịch thành công',

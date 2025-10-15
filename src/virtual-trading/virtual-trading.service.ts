@@ -49,8 +49,8 @@ export class VirtualTradingService {
 
     const portfolio = this.portfolioRepository.create({
       userId,
-      cashBalance: 10000000000, // 10 tỷ VND
-      totalAssetValue: 10000000000,
+      cashBalance: 1000000000, // 1 tỷ VND
+      totalAssetValue: 1000000000,
       stockValue: 0,
       totalProfitLoss: 0,
       profitLossPercentage: 0,
@@ -281,7 +281,11 @@ export class VirtualTradingService {
         portfolioBalanceBefore: portfolio.cashBalance,
         portfolioBalanceAfter: portfolio.cashBalance + netAmount,
         executedAt: new Date(),
-        marketData: { currentPrice, orderType: sellDto.orderType },
+        marketData: { 
+          currentPrice, 
+          orderType: sellDto.orderType,
+          averagePriceAtSell: holding.averagePrice // Lưu giá mua trung bình tại thời điểm bán
+        },
       });
 
       await queryRunner.manager.save(transaction);
@@ -370,8 +374,8 @@ export class VirtualTradingService {
   }
 
   private calculateFee(amount: number): number {
-    // Phí môi giới 0.15%
-    return Math.floor(amount * 0.0015);
+    // Phí môi giới 0.01%
+    return Math.floor(amount * 0.0001);
   }
 
   private calculateTax(amount: number): number {
@@ -549,7 +553,7 @@ export class VirtualTradingService {
     page: number = 1,
     limit: number = 20,
     type?: 'BUY' | 'SELL',
-  ): Promise<{ data: VirtualTransaction[]; meta: any }> {
+  ): Promise<{ data: any[]; meta: any }> {
     const portfolio = await this.portfolioRepository.findOne({
       where: { userId, isActive: true },
     });
@@ -586,8 +590,50 @@ export class VirtualTradingService {
 
     const [transactions, total] = await queryBuilder.getManyAndCount();
 
+    // Process transactions to add average cost for all transactions
+    const processedTransactions = await Promise.all(
+      transactions.map(async (transaction) => {
+        const result: any = {
+          ...transaction,
+        };
+
+        const transactionDate = transaction.executedAt || transaction.createdAt;
+
+        if (transaction.transactionType === VirtualTransactionType.SELL) {
+          // For SELL: show average cost before selling (giá vốn trước khi bán)
+          const averageCostBeforeSell = await this.getLatestAverageCost(
+            transaction.portfolioId,
+            transaction.symbolCode,
+            transactionDate,
+          );
+
+          if (averageCostBeforeSell) {
+            result.averageCost = averageCostBeforeSell; // Giá vốn TB trước khi bán
+            result.totalCost = averageCostBeforeSell * transaction.quantity; // Tổng giá vốn
+            result.profitLoss = transaction.netAmount - (averageCostBeforeSell * transaction.quantity); // Lãi/lỗ
+            result.profitLossPercentage = ((transaction.pricePerShare - averageCostBeforeSell) / averageCostBeforeSell) * 100; // % lãi/lỗ
+          }
+        } else if (transaction.transactionType === VirtualTransactionType.BUY) {
+          // For BUY: calculate new average cost after buying (giá vốn sau khi mua)
+          const averageCostAfterBuy = await this.calculateAverageCostAfterBuy(
+            transaction.portfolioId,
+            transaction.symbolCode,
+            transactionDate,
+            transaction.quantity,
+            transaction.pricePerShare,
+          );
+
+          if (averageCostAfterBuy) {
+            result.averageCost = averageCostAfterBuy; // Giá vốn TB sau khi mua
+          }
+        }
+
+        return result;
+      }),
+    );
+
     return {
-      data: transactions,
+      data: processedTransactions,
       meta: {
         page: validPage,
         limit: validLimit,
@@ -596,6 +642,126 @@ export class VirtualTradingService {
       },
     };
   }
+
+  private async calculateAverageCostAfterBuy(
+    portfolioId: string,
+    symbolCode: string,
+    buyDate: Date,
+    newQuantity: number,
+    newPrice: number,
+  ): Promise<number | null> {
+    /**
+     * Tính giá vốn TB sau khi mua thêm
+     * Công thức: Giá vốn mới = (Tổng giá trị cũ còn lại + Giá mua mới × SL mới) / (SL cũ còn lại + SL mới)
+     * 
+     * Ví dụ từ bảng:
+     * 14/10: Mua 12,000 CP giá 90,500
+     * - SL cũ: 8,000 CP (giá vốn 89,500)
+     * - Giá vốn mới = (89,500×8,000 + 90,500×12,000) / (8,000 + 12,000) = 90,100
+     */
+
+    // Lấy tất cả giao dịch BUY và SELL trước thời điểm này để tính số lượng và giá vốn hiện tại
+    const [buyTransactions, sellTransactions] = await Promise.all([
+      this.transactionRepository.find({
+        where: {
+          portfolioId,
+          symbolCode,
+          transactionType: VirtualTransactionType.BUY,
+          status: VirtualTransactionStatus.COMPLETED,
+        },
+        order: { executedAt: 'ASC' },
+      }),
+      this.transactionRepository.find({
+        where: {
+          portfolioId,
+          symbolCode,
+          transactionType: VirtualTransactionType.SELL,
+          status: VirtualTransactionStatus.COMPLETED,
+        },
+        order: { executedAt: 'ASC' },
+      }),
+    ]);
+
+    // Tính tổng số lượng MUA và tổng giá trị MUA trước thời điểm này
+    let totalBuyQuantity = 0;
+    let totalBuyCost = 0;
+
+    for (const buy of buyTransactions) {
+      const previousBuyDate = buy.executedAt || buy.createdAt;
+      if (previousBuyDate < buyDate) {
+        totalBuyQuantity += buy.quantity;
+        totalBuyCost += buy.quantity * buy.pricePerShare;
+      }
+    }
+
+    // Trừ đi số lượng đã bán
+    let totalSoldQuantity = 0;
+    for (const sell of sellTransactions) {
+      const sellDate = sell.executedAt || sell.createdAt;
+      if (sellDate < buyDate) {
+        totalSoldQuantity += sell.quantity;
+      }
+    }
+
+    // Số lượng còn lại trước khi mua thêm
+    const remainingQuantity = totalBuyQuantity - totalSoldQuantity;
+
+    // Nếu không có cổ phiếu cũ, giá vốn mới = giá mua hiện tại
+    if (remainingQuantity <= 0 || totalBuyQuantity <= 0) {
+      return newPrice;
+    }
+
+    // Giá vốn TB hiện tại (trước khi mua thêm)
+    const currentAverageCost = totalBuyCost / totalBuyQuantity;
+    
+    // Tính giá vốn mới sau khi mua thêm
+    // Giá vốn mới = (Giá vốn cũ × SL còn lại + Giá mua mới × SL mới) / (SL còn lại + SL mới)
+    const newTotalQuantity = remainingQuantity + newQuantity;
+    const newTotalCost = (currentAverageCost * remainingQuantity) + (newPrice * newQuantity);
+    const newAverageCost = Math.floor(newTotalCost / newTotalQuantity);
+
+    return newAverageCost;
+  }
+
+  private async getLatestAverageCost(
+    portfolioId: string,
+    symbolCode: string,
+    transactionDate: Date,
+  ): Promise<number | null> {
+    /**
+     * Lấy giá vốn TB từ lần mua gần nhất trước thời điểm này
+     * Không cần tính lại từ đầu, chỉ cần lấy giá vốn đã được tính sau lần BUY gần nhất
+     */
+
+    // Tìm lần mua gần nhất trước thời điểm này
+    const latestBuyBeforeDate = await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .where('transaction.portfolioId = :portfolioId', { portfolioId })
+      .andWhere('transaction.symbolCode = :symbolCode', { symbolCode })
+      .andWhere('transaction.transactionType = :type', { type: VirtualTransactionType.BUY })
+      .andWhere('transaction.status = :status', { status: VirtualTransactionStatus.COMPLETED })
+      .andWhere('(transaction.executedAt < :date OR (transaction.executedAt IS NULL AND transaction.createdAt < :date))', { date: transactionDate })
+      .orderBy('transaction.executedAt', 'DESC')
+      .addOrderBy('transaction.createdAt', 'DESC')
+      .getOne();
+
+    if (!latestBuyBeforeDate) {
+      return null;
+    }
+
+    // Tính giá vốn sau lần mua gần nhất này
+    const buyDate = latestBuyBeforeDate.executedAt || latestBuyBeforeDate.createdAt;
+    const averageCost = await this.calculateAverageCostAfterBuy(
+      portfolioId,
+      symbolCode,
+      buyDate,
+      latestBuyBeforeDate.quantity,
+      latestBuyBeforeDate.pricePerShare,
+    );
+
+    return averageCost;
+  }
+
 
   private async calculateRealizedProfitLoss(
     portfolioId: string,
@@ -609,30 +775,21 @@ export class VirtualTradingService {
       },
     });
 
-    // Cần tính: Giá bán - Giá vốn - Phí - Thuế
-    // Giá bán = totalAmount
-    // Giá vốn = cần tính từ average price tại thời điểm bán
-    // Phí + Thuế = fee + tax
-    
-    // Tạm thời sử dụng công thức đơn giản:
-    // realized P/L = netAmount - (số tiền đã bỏ ra để mua số lượng đó)
-    // Vì không lưu giá vốn trong transaction, tính gần đúng:
-    // realized P/L ≈ tổng lãi/lỗ - unrealized P/L hiện tại
-    
-    // Cách chính xác: tính từ từng transaction bán
     let totalRealizedPL = 0;
     
     for (const transaction of sellTransactions) {
-      // Lợi nhuận thực = Tiền nhận được - Giá vốn
-      // Giá vốn gần đúng = (totalAmount / (1 - fee% - tax%)) * originalCostRatio
-      // Nhưng không có đủ thông tin, sử dụng công thức đơn giản:
-      // Profit = netAmount - originalCost (không có originalCost)
-      
-      // Tạm thời: không tính được chính xác vì thiếu originalCost
-      // Sẽ tính sau = totalProfitLoss - unrealizedProfitLoss
-    }
+      // Tính lãi/lỗ thực hiện: Tiền nhận được - Giá vốn
+      // Giá vốn = giá mua trung bình (lưu trong marketData) * số lượng
+      const averagePriceAtSell = transaction.marketData?.averagePriceAtSell;
 
+      if (averagePriceAtSell) {
+        const costBasis = averagePriceAtSell * transaction.quantity;
+        const realizedPL = transaction.netAmount - costBasis;
+        totalRealizedPL += realizedPL;
+      }
+    }
     return totalRealizedPL;
+
   }
 
   private async mapToPortfolioSummary(
@@ -646,9 +803,8 @@ export class VirtualTradingService {
       }
     }
 
-    // Tính realized profit/loss
-    // realized = total - unrealized
-    const realizedProfitLoss = portfolio.totalProfitLoss - unrealizedProfitLoss;
+    // Tính realized profit/loss từ các giao dịch SELL
+    const realizedProfitLoss = await this.calculateRealizedProfitLoss(portfolio.id);
 
     return {
       id: portfolio.id,
@@ -674,6 +830,7 @@ export class VirtualTradingService {
           unrealizedProfitLoss: holding.unrealizedProfitLoss,
           profitLossPercentage: holding.profitLossPercentage,
           totalCost: holding.totalCost,
+          
         })) || [],
     };
   }

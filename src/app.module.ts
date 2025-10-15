@@ -15,6 +15,7 @@ import { ReferralModule } from './referral/referral.module';
 import { AdminModule } from './admin/admin.module';
 import { ChatModule } from './chat/chat.module';
 import { ApiExtensionModule } from './api-extension/api-extension.module';
+import { PriceActionModule } from './price-action/price-action.module';
 import { User } from './entities/user.entity';
 import { UserPii } from './entities/user-pii.entity';
 import { Session } from './entities/session.entity';
@@ -91,6 +92,7 @@ import { UserApiExtension } from './entities/user-api-extension.entity';
     AdminModule,
     ChatModule,
     ApiExtensionModule,
+    PriceActionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
