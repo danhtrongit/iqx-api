@@ -33,6 +33,9 @@ export class HoldingDto {
   @ApiProperty({ example: 67000, description: 'Giá hiện tại' })
   currentPrice: number;
 
+  @ApiProperty({ example: 66000, description: 'Giá hôm qua', nullable: true })
+  yesterdayPrice: number | null;
+
   @ApiProperty({ example: 200000, description: 'Lãi/lỗ chưa thực hiện' })
   unrealizedProfitLoss: number;
 

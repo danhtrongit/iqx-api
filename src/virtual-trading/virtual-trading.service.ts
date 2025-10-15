@@ -69,8 +69,8 @@ export class VirtualTradingService {
       return null;
     }
 
-    // Cập nhật giá hiện tại cho tất cả holdings
-    await this.updatePortfolioPrices(portfolio.id);
+    // Cập nhật giá hiện tại cho tất cả holdings và lấy giá hôm qua
+    const yesterdayPriceMap = await this.updatePortfolioPrices(portfolio.id);
 
     // Lấy lại portfolio với giá đã cập nhật
     const updatedPortfolio = await this.portfolioRepository.findOne({
@@ -78,7 +78,7 @@ export class VirtualTradingService {
       relations: ['holdings', 'holdings.symbol'],
     });
 
-    return await this.mapToPortfolioSummary(updatedPortfolio!);
+    return await this.mapToPortfolioSummary(updatedPortfolio!, yesterdayPriceMap);
   }
 
   async buyStock(
@@ -373,6 +373,86 @@ export class VirtualTradingService {
     }
   }
 
+  private async getHistoricalPrices(
+    symbolCodes: string[],
+  ): Promise<Map<string, { currentPrice: number | null; yesterdayPrice: number | null }>> {
+    const priceMap = new Map<string, { currentPrice: number | null; yesterdayPrice: number | null }>();
+    
+    if (symbolCodes.length === 0) {
+      return priceMap;
+    }
+
+    try {
+      const now = Date.now();
+      const to = Math.floor(now / 1000);
+      const countBack = symbolCodes.length * 2;
+
+      const response = await fetch(
+        'https://trading.vietcap.com.vn/api/chart/OHLCChart/gap-chart',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Referer: 'https://trading.vietcap.com.vn/',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          body: JSON.stringify({
+            timeFrame: 'ONE_DAY',
+            symbols: symbolCodes,
+            to: to,
+            countBack: countBack,
+          }),
+        },
+      );
+
+      console.log(response);
+
+      if (!response.ok) {
+        this.logger.error(
+          `HTTP error: ${response.status} when fetching historical prices`,
+        );
+        return priceMap;
+      }
+
+      const data: StockPrice[] = await response.json();
+
+      // Xử lý dữ liệu cho từng symbol
+      for (const stockData of data) {
+        // Lấy symbol code từ trường 's' hoặc 'symbol'
+        const symbolCode = stockData.s || stockData.symbol;
+        
+        if (!symbolCode) {
+          this.logger.warn('Symbol code not found in API response', stockData);
+          continue;
+        }
+
+        let currentPrice: number | null = null;
+        let yesterdayPrice: number | null = null;
+
+        // Lấy giá gần nhất (hôm nay hoặc ngày giao dịch gần nhất)
+        // API trả về mảng theo thứ tự từ cũ đến mới (oldest to newest)
+        if (stockData.c && stockData.c.length > 0) {
+          const lastIndex = stockData.c.length - 1;
+          currentPrice = stockData.c[lastIndex]; // Phần tử cuối = giá hiện tại (mới nhất)
+          
+          // Lấy giá ngày hôm qua (phần tử áp chót)
+          if (lastIndex > 0) {
+            yesterdayPrice = stockData.c[lastIndex - 1];
+          }
+        }
+
+        this.logger.debug(`Symbol ${symbolCode}: current=${currentPrice}, yesterday=${yesterdayPrice}`);
+        priceMap.set(symbolCode, { currentPrice, yesterdayPrice });
+      }
+
+      return priceMap;
+    } catch (error) {
+      this.logger.error(`Lỗi khi lấy giá lịch sử: ${error.message}`);
+      return priceMap;
+    }
+  }
+
   private calculateFee(amount: number): number {
     // Phí môi giới 0.01%
     return Math.floor(amount * 0.0001);
@@ -383,16 +463,30 @@ export class VirtualTradingService {
     return Math.floor(amount * 0.001);
   }
 
-  private async updatePortfolioPrices(portfolioId: string): Promise<void> {
+  private async updatePortfolioPrices(portfolioId: string): Promise<Map<string, number | null>> {
     const holdings = await this.holdingRepository.find({
       where: { portfolioId },
     });
 
+    const yesterdayPriceMap = new Map<string, number | null>();
+
+    if (holdings.length === 0) {
+      return yesterdayPriceMap;
+    }
+
+    // Lấy danh sách tất cả symbol codes
+    const symbolCodes = holdings.map(h => h.symbolCode);
+    
+    // Gọi API để lấy giá hiện tại và giá hôm qua
+    const pricesMap = await this.getHistoricalPrices(symbolCodes);
+
+    // Cập nhật từng holding
     for (const holding of holdings) {
-      const currentPrice = await this.getCurrentPrice(holding.symbolCode);
-      if (currentPrice) {
-        holding.currentPrice = currentPrice;
-        holding.currentValue = holding.quantity * currentPrice;
+      const prices = pricesMap.get(holding.symbolCode);
+      
+      if (prices && prices.currentPrice) {
+        holding.currentPrice = prices.currentPrice;
+        holding.currentValue = holding.quantity * prices.currentPrice;
         holding.unrealizedProfitLoss = holding.currentValue - holding.totalCost;
         holding.profitLossPercentage =
           holding.totalCost > 0
@@ -412,8 +506,17 @@ export class VirtualTradingService {
         holding.lastPriceUpdate = new Date();
 
         await this.holdingRepository.save(holding);
+        
+        // Lưu giá hôm qua vào map để trả về (có thể null)
+        yesterdayPriceMap.set(holding.symbolCode, prices.yesterdayPrice);
+      } else {
+        // Nếu không lấy được giá hiện tại, vẫn thêm null cho yesterdayPrice
+        this.logger.warn(`Cannot get current price for ${holding.symbolCode}`);
+        yesterdayPriceMap.set(holding.symbolCode, null);
       }
     }
+
+    return yesterdayPriceMap;
   }
 
   private async recalculatePortfolioValue(
@@ -794,6 +897,7 @@ export class VirtualTradingService {
 
   private async mapToPortfolioSummary(
     portfolio: VirtualPortfolio,
+    yesterdayPriceMap?: Map<string, number | null>,
   ): Promise<PortfolioSummaryDto> {
     // Tính unrealized profit/loss từ holdings
     let unrealizedProfitLoss = 0;
@@ -830,7 +934,7 @@ export class VirtualTradingService {
           unrealizedProfitLoss: holding.unrealizedProfitLoss,
           profitLossPercentage: holding.profitLossPercentage,
           totalCost: holding.totalCost,
-          
+          yesterdayPrice: yesterdayPriceMap?.get(holding.symbolCode) || null,
         })) || [],
     };
   }

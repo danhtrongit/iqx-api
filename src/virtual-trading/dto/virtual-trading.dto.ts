@@ -1,4 +1,5 @@
 export interface StockPrice {
+  s: string; // symbol code
   symbol: string;
   o: number[]; // open
   h: number[]; // high
@@ -51,6 +52,7 @@ export interface HoldingSummaryDto {
   unrealizedProfitLoss: number;
   profitLossPercentage: number;
   totalCost: number;
+  yesterdayPrice: number | null;
 }
 
 export interface TransactionHistoryDto {
