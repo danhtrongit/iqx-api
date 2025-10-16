@@ -563,10 +563,10 @@ export class VirtualTradingService {
 
     portfolio.stockValue = totalStockValue;
     portfolio.totalAssetValue = portfolio.cashBalance + totalStockValue;
-    portfolio.totalProfitLoss = portfolio.totalAssetValue - 10000000000; // So với 10 tỷ ban đầu
+    portfolio.totalProfitLoss = portfolio.totalAssetValue - 1000000000; // So với 1 tỷ ban đầu
     portfolio.profitLossPercentage = Math.min(
       Math.max(
-        Number(((portfolio.totalProfitLoss / 10000000000) * 100).toFixed(4)),
+        Number(((portfolio.totalProfitLoss / 1000000000) * 100).toFixed(4)),
         -999999.9999,
       ),
       999999.9999,

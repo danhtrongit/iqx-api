@@ -133,13 +133,18 @@ export class PriceActionService {
     tickerList: Array<{ ticker: string; date: string }>,
   ): Promise<any[]> {
     const results: any[] = [];
-    const batchSize = 50; // Process 5 symbols at a time to avoid overwhelming the API
+    const batchSize = 5; // Process 5 symbols at a time to avoid overwhelming the API
 
     for (let i = 0; i < tickerList.length; i += batchSize) {
       const batch = tickerList.slice(i, i + batchSize);
       const batchPromises = batch.map(async (item) => {
         try {
           const metrics = await this.calculatePriceActionMetrics(item.ticker);
+          if (metrics.currentPrice === null) {
+            this.logger.warn(
+              `Không lấy được dữ liệu cho ${item.ticker}, có thể mã không tồn tại hoặc API không trả về dữ liệu`,
+            );
+          }
           return {
             ticker: item.ticker,
             date: item.date,
@@ -171,9 +176,9 @@ export class PriceActionService {
         `Đã xử lý ${Math.min(i + batchSize, tickerList.length)}/${tickerList.length} mã`,
       );
 
-      // Add small delay between batches
+      // Add delay between batches to avoid rate limiting
       if (i + batchSize < tickerList.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 

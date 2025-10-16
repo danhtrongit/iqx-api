@@ -26,7 +26,7 @@ export class VirtualLeaderboard {
   @Column('bigint', { name: 'total_asset_value' })
   totalAssetValue: number;
 
-  @Column('bigint', { name: 'initial_balance', default: 10000000000 })
+  @Column('bigint', { name: 'initial_balance', default: 1000000000 })
   initialBalance: number;
 
   @Column('bigint', { name: 'total_profit_loss' })

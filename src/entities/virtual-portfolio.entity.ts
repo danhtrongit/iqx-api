@@ -22,17 +22,17 @@ export class VirtualPortfolio {
 
   @Column('bigint', {
     name: 'cash_balance',
-    default: '10000000000',
+    default: '1000000000',
     transformer: {
       to: (value: number) => value.toString(),
       from: (value: string) => parseInt(value, 10),
     },
-  }) // 10 tỷ VND ban đầu
+  }) // 1 tỷ VND ban đầu
   cashBalance: number;
 
   @Column('bigint', {
     name: 'total_asset_value',
-    default: '10000000000',
+    default: '1000000000',
     transformer: {
       to: (value: number) => value.toString(),
       from: (value: string) => parseInt(value, 10),

@@ -4,10 +4,10 @@ export class PortfolioResponseDto {
   @ApiProperty({ example: 'uuid-123', description: 'Portfolio ID' })
   id: string;
 
-  @ApiProperty({ example: 10000000000, description: 'Số dư tiền mặt' })
+  @ApiProperty({ example: 1000000000, description: 'Số dư tiền mặt' })
   cashBalance: number;
 
-  @ApiProperty({ example: 10000000000, description: 'Tổng giá trị tài sản' })
+  @ApiProperty({ example: 1000000000, description: 'Tổng giá trị tài sản' })
   totalAssetValue: number;
 
   @ApiProperty({
